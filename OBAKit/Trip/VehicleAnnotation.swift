@@ -11,7 +11,7 @@ import MapKit
 
 class VehicleAnnotation: MKPointAnnotation {
 
-    init(tripStatus: TripStatus) {
+    init(tripStatus: TripStatusAnnotation) {
         self.tripStatus = tripStatus
         super.init()
         updateAnnotation()
@@ -19,10 +19,10 @@ class VehicleAnnotation: MKPointAnnotation {
 
     private func updateAnnotation() {
         self.title = tripStatus?.title ?? ""
-        self.coordinate = tripStatus?.lastKnownLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 0, longitude: 0)
+        self.coordinate = tripStatus?.tripStatus.lastKnownLocation?.location.coordinate ?? CLLocationCoordinate2D(latitude: 0, longitude: 0)
     }
 
-    var tripStatus: TripStatus? {
+    var tripStatus: TripStatusAnnotation? {
         didSet {
             updateAnnotation()
         }

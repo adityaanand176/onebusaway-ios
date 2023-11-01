@@ -498,12 +498,12 @@ class MapViewController: UIViewController,
             present(alert, animated: true) {
                 mapView.deselectAnnotation(view.annotation, animated: true)
             }
-        } else if let stop = view.annotation as? Stop, UIAccessibility.isVoiceOverRunning {
+        } else if let stop = view.annotation as? StopAnnotation, UIAccessibility.isVoiceOverRunning {
             // When VoiceOver is running, StopAnnotationView does not display a callout due to
             // VoiceOver limitations with MKMapView. Therefore, we should skip any callouts
             // and just go directly to pushing the stop onto the navigation stack.
             application.analytics?.reportEvent?(.userAction, label: AnalyticsLabels.mapStopAnnotationTapped, value: nil)
-            show(stop: stop)
+            show(stop: stop.stop)
         }
     }
 
@@ -519,9 +519,9 @@ class MapViewController: UIViewController,
     }
 
     func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
-        if let stop = view.annotation as? Stop {
+        if let stop = view.annotation as? StopAnnotation {
             application.analytics?.reportEvent?(.userAction, label: AnalyticsLabels.mapStopAnnotationTapped, value: nil)
-            show(stop: stop)
+            show(stop: stop.stop)
         } else if let bookmark = view.annotation as? Bookmark {
             application.analytics?.reportEvent?(.userAction, label: AnalyticsLabels.mapStopAnnotationTapped, value: nil)
             show(stop: bookmark.stop)
@@ -573,6 +573,10 @@ class MapViewController: UIViewController,
                 fatalError()
             }
         }
+    }
+
+    func mapRegionManager(_ manager: MapRegionManager, stopsUpdated stops: [OBAKitCore.Stop]) {
+        /* noop */
     }
 
     // MARK: Loading Indicator
@@ -676,11 +680,11 @@ class MapViewController: UIViewController,
     public func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
         guard
             let annotationView = interaction.view as? MKAnnotationView,
-            let stop = annotationView.annotation as? Stop
+            let stop = annotationView.annotation as? StopAnnotation
         else { return nil }
 
         let previewController = { () -> UIViewController in
-            let stopController = StopViewController(application: self.application, stop: stop)
+            let stopController = StopViewController(application: self.application, stop: stop.stop)
             stopController.enterPreviewMode()
             return stopController
         }

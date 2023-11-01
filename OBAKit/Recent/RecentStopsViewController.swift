@@ -129,30 +129,31 @@ public class RecentStopsViewController: UIViewController,
     }
 
     private var stops: OBAListViewSection? {
-        guard let currentRegion = application.currentRegion else {
-            return nil
-        }
-
-        let stops = application.userDataStore.recentStops.filter { $0.regionIdentifier == currentRegion.regionIdentifier }
-        guard stops.count > 0 else {
-            return nil
-        }
-
-        let rows = stops.map { stop -> StopViewModel in
-            let onSelect: OBAListViewAction<StopViewModel> = { [unowned self] viewModel in
-                self.application.viewRouter.navigateTo(stopID: viewModel.stopID, from: self)
-            }
-
-            let onDelete: OBAListViewAction<StopViewModel> = { [unowned self] _ in
-                self.application.userDataStore.delete(recentStop: stop)
-                self.listView.applyData(animated: true)
-            }
-
-            return StopViewModel(withStop: stop, onSelect: onSelect, onDelete: onDelete)
-        }
-
-        let title = application.userDataStore.alarms.count > 0 ? Strings.recentStops : nil
-        return OBAListViewSection(id: "recent_stops", title: title, contents: rows)
+        return nil
+//        guard let currentRegion = application.currentRegion else {
+//            return nil
+//        }
+//
+//        let stops = application.userDataStore.recentStops.filter { $0.regionIdentifier == currentRegion.regionIdentifier }
+//        guard stops.count > 0 else {
+//            return nil
+//        }
+//
+//        let rows = stops.map { stop -> StopViewModel in
+//            let onSelect: OBAListViewAction<StopViewModel> = { [unowned self] viewModel in
+//                self.application.viewRouter.navigateTo(stopID: viewModel.stopID, from: self)
+//            }
+//
+//            let onDelete: OBAListViewAction<StopViewModel> = { [unowned self] _ in
+//                self.application.userDataStore.delete(recentStop: stop)
+//                self.listView.applyData(animated: true)
+//            }
+//
+//            return StopViewModel(withStop: stop, onSelect: onSelect, onDelete: onDelete)
+//        }
+//
+//        let title = application.userDataStore.alarms.count > 0 ? Strings.recentStops : nil
+//        return OBAListViewSection(id: "recent_stops", title: title, contents: rows)
     }
 
     // MARK: - OBAListView

@@ -43,7 +43,8 @@ struct StopViewModel: OBAListViewItem {
          onDelete deleteAction: OBAListViewAction<StopViewModel>?) {
 
         self.name = showDirectionInTitle ? stop.nameWithLocalizedDirectionAbbreviation : stop.name
-        self.subtitle = stop.subtitle
+//        self.subtitle = stop.subtitle
+        self.subtitle = "TODO ME \(#file) \(#line)"
         self.routeType = stop.prioritizedRouteTypeForDisplay
 
         self.stopID = stop.id

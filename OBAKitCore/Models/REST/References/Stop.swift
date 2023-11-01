@@ -96,7 +96,7 @@ public struct Stop: Identifiable, Codable, Hashable {
     public let name: String
 
     /// A list of route IDs served by this stop.
-    let routeIDs: [RouteID]
+    public let routeIDs: [RouteID]
 
     /// Denotes the availability of wheelchair boarding at this stop.
     public let wheelchairBoarding: WheelchairBoarding
@@ -121,7 +121,9 @@ extension Stop {
 
     /// The route type that should be used to represent this Stop on a map.
     public var prioritizedRouteTypeForDisplay: Route.RouteType {
-        fatalError("PR-686 error: \(#function) unimplemented.")
+        print("PR-686 error: \(#function) unimplemented.")
+        return .funicular
+//        fatalError("\(#function) unimplemented.")
 //        let priorities: [Route.RouteType] = [.ferry, .lightRail, .subway, .rail, .bus]
 //
 //        // swiftlint:disable for_where

@@ -32,7 +32,7 @@ open class CoreApplication: NSObject,
     private let userDefaultsStore: UserDefaultsStore
 
     /// The data store for information like bookmarks, groups, and recent stops.
-    @objc public var userDataStore: UserDataStore {
+    public var userDataStore: UserDataStore {
         return userDefaultsStore
     }
 

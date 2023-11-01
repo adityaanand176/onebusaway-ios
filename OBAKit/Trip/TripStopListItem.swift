@@ -22,7 +22,7 @@ struct TripStopListItemRowConfiguration: OBAContentConfiguration {
 }
 
 struct TripStopViewModel: OBAListViewItem {
-    var id: String { stop.id }
+    var id: String { stopID }
 
     var configuration: OBAListViewItemConfiguration {
         return .custom(TripStopListItemRowConfiguration(viewModel: self))
@@ -54,32 +54,42 @@ struct TripStopViewModel: OBAListViewItem {
     let routeType: Route.RouteType
 
     /// The `Stop` referred to by this object.
-    let stop: Stop
+    let stopID: StopID
 
     let stopTime: TripStopTime
 
-    init(stopTime: TripStopTime, arrivalDeparture: ArrivalDeparture?, onSelectAction: OBAListViewAction<TripStopViewModel>?) {
-        self.stopTime = stopTime
-
-        stop = stopTime.stop
-
-        if let arrivalDeparture = arrivalDeparture {
-            isUserDestination = stopTime.stopID == arrivalDeparture.stopID
+    static func fromTripDetails(_ tripDetails: TripDetails, arrivalDeparture: ArrivalDeparture?, onSelectAction: OBAListViewAction<TripStopViewModel>?) -> [Self] {
+        return tripDetails.schedule.stopTimes.map {
+            self.init(tripDetails: tripDetails, stopTime: $0, arrivalDeparture: arrivalDeparture, onSelectAction: onSelectAction)
         }
-        else {
+    }
+
+    init(
+        tripDetails: TripDetails,
+        stopTime: TripStopTime,
+        arrivalDeparture: ArrivalDeparture?,
+        onSelectAction: OBAListViewAction<TripStopViewModel>?
+    ) {
+        self.stopTime = stopTime
+        self.stopID = stopTime.stopID
+
+        if let arrivalDeparture {
+            isUserDestination = stopTime.stopID == arrivalDeparture.stopID
+        } else {
             isUserDestination = false
         }
 
         if let closestStopID = arrivalDeparture?.tripStatus?.closestStopID {
             isCurrentVehicleLocation = stopTime.stopID == closestStopID
-        }
-        else {
+        } else {
             isCurrentVehicleLocation = false
         }
 
-        title = stopTime.stop.name
-        date = stopTime.arrivalDate
-        routeType = stopTime.stop.prioritizedRouteTypeForDisplay
+//        title = stopTime.stop.name
+        title = "STOPID: \(stopTime.stopID)"
+        date = stopTime.arrivalDate(relativeTo: tripDetails)
+//        routeType = stopTime.stop.prioritizedRouteTypeForDisplay
+        routeType = .funicular
 
         self.onSelectAction = onSelectAction
     }

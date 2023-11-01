@@ -10,9 +10,10 @@
 import UIKit
 import SafariServices
 import OBAKitCore
+import GRDB
 
 /// Loads and displays a list of agencies in the current region.
-class AgenciesViewController: TaskController<[AgencyWithCoverage]>, OBAListViewDataSource {
+class AgenciesViewController: PersistenceTaskController<[Agency]>, OBAListViewDataSource {
     let listView = OBAListView()
 
     override func viewDidLoad() {
@@ -27,19 +28,21 @@ class AgenciesViewController: TaskController<[AgencyWithCoverage]>, OBAListViewD
         title = OBALoc("agencies_controller.title", value: "Agencies", comment: "Title of the Agencies controller")
     }
 
-    override func loadData() async throws -> [AgencyWithCoverage] {
+    override func fetchFromPersistence() async throws -> [Agency]? {
+        return try await persistence.database.read { db in
+            try Agency.fetchAll(db)
+        }
+    }
+
+    override func fetchFromRemote() async throws {
         guard let apiService = application.apiService else {
             throw UnstructuredError("No API Service")
         }
 
-        ProgressHUD.show()
-        defer {
-            Task { @MainActor in
-                ProgressHUD.dismiss()
-            }
-        }
+        let response = try await apiService.getAgenciesWithCoverage()
 
-        return try await apiService.getAgenciesWithCoverage().list
+        // Agencies are stored in the getAgenciesWithCoverage's references.
+        try await persistence.processAPIResponse(response)
     }
 
     @MainActor
@@ -52,10 +55,10 @@ class AgenciesViewController: TaskController<[AgencyWithCoverage]>, OBAListViewD
         guard let agencies = data else { return [] }
 
         let rows = agencies
-            .sorted(by: { $0.agency.name < $1.agency.name })
+            .sorted(by: \.name)
             .map { agency -> OBAListRowView.DefaultViewModel in
                 OBAListRowView.DefaultViewModel(
-                    title: agency.agency.name,
+                    title: agency.name,
                     accessoryType: .disclosureIndicator,
                     onSelectAction: { _ in
                         self.onSelectAgency(agency)
@@ -65,8 +68,8 @@ class AgenciesViewController: TaskController<[AgencyWithCoverage]>, OBAListViewD
         return [OBAListViewSection(id: "agencies", title: nil, contents: rows)]
     }
 
-    func onSelectAgency(_ agency: AgencyWithCoverage) {
-        let safari = SFSafariViewController(url: agency.agency.agencyURL)
+    func onSelectAgency(_ agency: Agency) {
+        let safari = SFSafariViewController(url: agency.agencyURL)
         self.application.viewRouter.present(safari, from: self)
     }
 }

@@ -100,7 +100,7 @@ class StopAnnotationView: MKAnnotationView {
         if let bookmark = annotation as? Bookmark {
             prepareForDisplay(bookmark: bookmark, delegate: delegate)
         }
-        else if let stop = annotation as? Stop {
+        else if let stop = annotation as? StopAnnotation {
             prepareForDisplay(stop: stop, delegate: delegate)
         }
     }
@@ -109,11 +109,11 @@ class StopAnnotationView: MKAnnotationView {
         super.traitCollectionDidChange(previousTraitCollection)
 
         guard
-            let stop = annotation as? Stop,
+            let stop = annotation as? StopAnnotation,
             let delegate = delegate
         else { return }
 
-        image = delegate.iconFactory.buildIcon(for: stop, isBookmarked: delegate.isStopBookmarked(stop), traits: traitCollection)
+        image = delegate.iconFactory.buildIcon(for: stop.stop, isBookmarked: delegate.isStopBookmarked(stop.stop), traits: traitCollection)
     }
 
     // MARK: - Annotation Rendering
@@ -122,14 +122,14 @@ class StopAnnotationView: MKAnnotationView {
         labelStack.isHidden = delegate.shouldHideExtraStopAnnotationData
         image = delegate.iconFactory.buildIcon(for: bookmark.stop, isBookmarked: true, traits: traitCollection)
         titleLabel.text = bookmark.name
-        detailCalloutAccessoryView = buildDetailLabel(text: bookmark.stop.subtitle)
+//        detailCalloutAccessoryView = buildDetailLabel(text: bookmark.stop.subtitle)
     }
 
-    private func prepareForDisplay(stop: Stop, delegate: StopAnnotationDelegate) {
+    private func prepareForDisplay(stop: StopAnnotation, delegate: StopAnnotationDelegate) {
         labelStack.isHidden = delegate.shouldHideExtraStopAnnotationData
-        image = delegate.iconFactory.buildIcon(for: stop, isBookmarked: delegate.isStopBookmarked(stop), traits: traitCollection)
+        image = delegate.iconFactory.buildIcon(for: stop.stop, isBookmarked: delegate.isStopBookmarked(stop.stop), traits: traitCollection)
         titleLabel.text = stop.mapTitle
-        detailCalloutAccessoryView = buildDetailLabel(text: stop.subtitle)
+//        detailCalloutAccessoryView = buildDetailLabel(text: stop.subtitle)
     }
 
     private func buildDetailLabel(text: String?) -> UILabel {
@@ -158,11 +158,11 @@ class StopAnnotationView: MKAnnotationView {
 
     override var accessibilityLabel: String? {
         get {
-            guard let stop = annotation as? Stop else {
+            guard let stop = annotation as? StopAnnotation else {
                 return nil
             }
 
-            return Formatters.formattedAccessibilityLabel(stop: stop)
+            return Formatters.formattedAccessibilityLabel(stop: stop.stop)
         }
 
         set {

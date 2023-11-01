@@ -18,8 +18,7 @@ import Foundation
 /// This protocol is designed to support pluggable data storage layers, so that services ranging
 /// from UserDefaults, CloudKit, Firebase, or custom persistence systems (local or remote)
 /// could be used to store a user's data.
-@objc(OBAUserDataStore)
-public protocol UserDataStore: NSObjectProtocol {
+public protocol UserDataStore: AnyObject {
 
     // MARK: - Debug Mode
 
@@ -508,13 +507,13 @@ public class UserDefaultsStore: NSObject, UserDataStore, StopPreferencesStore {
 
     // MARK: - Service Alerts
 
-//    public func isUnread(serviceAlert: ServiceAlert) -> Bool {
-//        readAlerts[serviceAlert.id] ?? true
-//    }
-//
-//    public func markRead(serviceAlert: ServiceAlert) {
-//        readAlerts[serviceAlert.id] = false
-//    }
+    public func isUnread(serviceAlert: ServiceAlert) -> Bool {
+        readAlerts[serviceAlert.id] ?? true
+    }
+
+    public func markRead(serviceAlert: ServiceAlert) {
+        readAlerts[serviceAlert.id] = false
+    }
 
     private var readAlerts: [String: Bool] {
         get {

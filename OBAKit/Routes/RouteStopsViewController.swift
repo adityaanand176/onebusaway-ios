@@ -45,8 +45,9 @@ class RouteStopsViewController: VisualEffectViewController,
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        titleView.titleLabel.text = stopsForRoute.route.shortName
-        titleView.subtitleLabel.text = stopsForRoute.route.longName ?? stopsForRoute.route.agency.name
+        titleView.titleLabel.text = stopsForRoute.routeID       // TODO: me
+//        titleView.titleLabel.text = stopsForRoute.route.shortName
+//        titleView.subtitleLabel.text = stopsForRoute.route.longName ?? stopsForRoute.route.agency.name
         titleView.closeButton.addTarget(self, action: #selector(close), for: .touchUpInside)
 
         listView.obaDataSource = self
@@ -64,16 +65,23 @@ class RouteStopsViewController: VisualEffectViewController,
     }
 
     func items(for listView: OBAListView) -> [OBAListViewSection] {
-        let rows = stopsForRoute.stops!.map { stop -> OBAListRowView.SubtitleViewModel in
-            let title = stop.name
-            let subtitle = Formatters.adjectiveFormOfCardinalDirection(stop.direction) ?? ""
-            let stopID = stop.id
+        return [OBAListViewSection(
+            id: "asdf",
+            contents: [
+                OBAListRowView.SubtitleViewModel(title: "TODO implement me", subtitle: "please thanks")
+            ]
+        )]
 
-            return OBAListRowView.SubtitleViewModel(title: title, subtitle: subtitle, accessoryType: .disclosureIndicator) { _ in
-                self.application.viewRouter.navigateTo(stopID: stopID, from: self)
-            }
-        }
-
-        return [OBAListViewSection(id: "stops", contents: rows)]
+//        let rows = stopsForRoute.stops!.map { stop -> OBAListRowView.SubtitleViewModel in
+//            let title = stop.name
+//            let subtitle = Formatters.adjectiveFormOfCardinalDirection(stop.direction) ?? ""
+//            let stopID = stop.id
+//
+//            return OBAListRowView.SubtitleViewModel(title: title, subtitle: subtitle, accessoryType: .disclosureIndicator) { _ in
+//                self.application.viewRouter.navigateTo(stopID: stopID, from: self)
+//            }
+//        }
+//
+//        return [OBAListViewSection(id: "stops", contents: rows)]
     }
 }

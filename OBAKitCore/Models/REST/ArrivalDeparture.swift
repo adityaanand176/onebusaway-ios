@@ -181,7 +181,7 @@ public struct ArrivalDeparture: Identifiable, Codable, Hashable {
 
     /// A composite of the route name and headsign.
     public var routeAndHeadsign: String {
-        fatalError("PR-686 error: \(#function) unimplemented")
+        return "route and headsign!"
 //        [String.nilifyBlankValue(routeName), String.nilifyBlankValue(tripHeadsign)]
 //            .compactMap { $0 }
 //            .joined(separator: " - ")

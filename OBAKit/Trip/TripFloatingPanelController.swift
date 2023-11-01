@@ -90,14 +90,14 @@ class TripFloatingPanelController: UIViewController,
     }
 
     // MARK: - Public Methods
-    public func highlightStopInList(_ matchingStop: Stop) {
+    public func highlightStopInList(stopID matchingStopID: StopID) {
         let data = self.items(for: listView)
 
         var matchingIndexPath: IndexPath?
         for (sectionIndex, section) in data.enumerated() {
             for (itemIndex, item) in section.contents.enumerated() {
                 guard let tripStop = item.as(TripStopViewModel.self),
-                      tripStop.stop.id == matchingStop.id else { continue }
+                      tripStop.stopID == matchingStopID else { continue }
                 matchingIndexPath = IndexPath(item: itemIndex, section: sectionIndex)
                 break
             }
@@ -195,15 +195,18 @@ class TripFloatingPanelController: UIViewController,
 
         var sections: [OBAListViewSection] = []
 
-        if tripDetails.serviceAlerts.count > 0 {
-            sections.append(serviceAlertsListSection(tripDetails.serviceAlerts))
-        }
+        print("No situations will appear!")
+//        if tripDetails.serviceAlerts.count > 0 {
+//            sections.append(serviceAlertsListSection(tripDetails.serviceAlerts))
+//        }
 
         sections.append(
             tripStopListSection(
                 tripDetails: tripDetails,
                 arrivalDeparture: tripConvertible?.arrivalDeparture,
-                showHeader: !tripDetails.serviceAlerts.isEmpty))
+                showHeader: !tripDetails.situationIDs.isEmpty
+            )
+        )
 
         for idx in sections.indices {
             sections[idx].configuration.appearance = .plain
@@ -241,7 +244,7 @@ class TripFloatingPanelController: UIViewController,
     }
 
     private func onSelectTripStop(_ tripStop: TripStopViewModel) {
-        application.viewRouter.navigateTo(stop: tripStop.stop, from: self)
+        application.viewRouter.navigateTo(stopID: tripStop.stopID, from: self)
     }
 
     private func showOnMap(_ tripStop: TripStopViewModel) {
@@ -249,7 +252,7 @@ class TripFloatingPanelController: UIViewController,
     }
 
     private func showOnList(_ tripStop: TripStopTime) {
-        highlightStopInList(tripStop.stop)
+        highlightStopInList(stopID: tripStop.stopID)
     }
 
     private func serviceAlertsListSection(_ alerts: [ServiceAlert]) -> OBAListViewSection {
@@ -274,18 +277,33 @@ class TripFloatingPanelController: UIViewController,
         var contents: [AnyOBAListViewItem] = []
         let selectAdjacentTripAction: OBAListViewAction<AdjacentTripItem> = { [unowned self] item in self.onSelectAdjacentTrip(item) }
 
+        let persistence = PersistenceServiceRegion[application.currentRegion]
+        struct TripSection {
+            var previousTrip: Trip?
+            var currentTrip: Trip?
+            var nextTrip: Trip?
+        }
+
+        let section = try! persistence.database.read { db in
+            return TripSection(
+                previousTrip: try tripDetails.previousTrip.fetchOne(db),
+                currentTrip: try tripDetails.trip.fetchOne(db),
+                nextTrip: try tripDetails.nextTrip.fetchOne(db)
+            )
+        }
+
         // Previous trip, if any.
-        if let previousTrip = tripDetails.previousTrip {
+        if let previousTrip = section.previousTrip {
             contents.append(AdjacentTripItem(order: .previous, trip: previousTrip, onSelectAction: selectAdjacentTripAction).typeErased)
         }
 
         // Stop times
         let selectTripStopAction: OBAListViewAction<TripStopViewModel> = { [unowned self] item in self.onSelectTripStop(item) }
-        let stopTimes: [AnyOBAListViewItem] = tripDetails.stopTimes.map { TripStopViewModel(stopTime: $0, arrivalDeparture: arrivalDeparture, onSelectAction: selectTripStopAction).typeErased }
+        let stopTimes: [AnyOBAListViewItem] = TripStopViewModel.fromTripDetails(tripDetails, arrivalDeparture: arrivalDeparture, onSelectAction: selectTripStopAction).map(\.typeErased)
         contents.append(contentsOf: stopTimes)
 
         // Next trip, if any.
-        if let nextTrip = tripDetails.nextTrip {
+        if let nextTrip = section.nextTrip {
             contents.append(AdjacentTripItem(order: .next, trip: nextTrip, onSelectAction: selectAdjacentTripAction).typeErased)
         }
 
@@ -303,32 +321,33 @@ class TripFloatingPanelController: UIViewController,
     }
 
     private func getWalkingDirections(for viewModel: TripStopViewModel) -> UIMenuElement? {
-        let appleMapsAction: UIAction?
-        if let appleMapsURL = AppInterop.appleMapsWalkingDirectionsURL(coordinate: viewModel.stop.coordinate) {
-            appleMapsAction = UIAction(title: OBALoc("stops_controller.walking_directions_apple", value: "Walking Directions (Apple Maps)", comment: "Button that launches Apple's maps.app with walking directions to this stop")) { [unowned self] _ in
-                self.application.open(appleMapsURL, options: [:], completionHandler: nil)
-            }
-        } else {
-            appleMapsAction = nil
-        }
-
-        let googleMapsAction: UIAction?
-        #if !targetEnvironment(simulator)
-        if let googleMapsURL = AppInterop.googleMapsWalkingDirectionsURL(coordinate: viewModel.stop.coordinate) {
-            googleMapsAction = UIAction(title: OBALoc("stops_controller.walking_directions_google", value: "Walking Directions (Google Maps)", comment: "Button that launches Google Maps with walking directions to this stop")) { [unowned self] _ in
-                self.application.open(googleMapsURL, options: [:], completionHandler: nil)
-            }
-        } else {
-            googleMapsAction = nil
-        }
-        #else
-        googleMapsAction = nil
-        #endif
-
-        let actions = [appleMapsAction, googleMapsAction].compactMap { $0 }
-        guard !actions.isEmpty else { return nil }
-
-        return UIMenu(title: OBALoc("stops_controller.walking_directions", value: "Walking Directions", comment: "Button that launches a maps app with walking directions to this stop"), image: UIImage(systemName: "figure.walk"), children: actions)
+        fatalError("\(#function) unimplemented")
+//        let appleMapsAction: UIAction?
+//        if let appleMapsURL = AppInterop.appleMapsWalkingDirectionsURL(coordinate: viewModel.stop.coordinate) {
+//            appleMapsAction = UIAction(title: OBALoc("stops_controller.walking_directions_apple", value: "Walking Directions (Apple Maps)", comment: "Button that launches Apple's maps.app with walking directions to this stop")) { [unowned self] _ in
+//                self.application.open(appleMapsURL, options: [:], completionHandler: nil)
+//            }
+//        } else {
+//            appleMapsAction = nil
+//        }
+//
+//        let googleMapsAction: UIAction?
+//        #if !targetEnvironment(simulator)
+//        if let googleMapsURL = AppInterop.googleMapsWalkingDirectionsURL(coordinate: viewModel.stop.coordinate) {
+//            googleMapsAction = UIAction(title: OBALoc("stops_controller.walking_directions_google", value: "Walking Directions (Google Maps)", comment: "Button that launches Google Maps with walking directions to this stop")) { [unowned self] _ in
+//                self.application.open(googleMapsURL, options: [:], completionHandler: nil)
+//            }
+//        } else {
+//            googleMapsAction = nil
+//        }
+//        #else
+//        googleMapsAction = nil
+//        #endif
+//
+//        let actions = [appleMapsAction, googleMapsAction].compactMap { $0 }
+//        guard !actions.isEmpty else { return nil }
+//
+//        return UIMenu(title: OBALoc("stops_controller.walking_directions", value: "Walking Directions", comment: "Button that launches a maps app with walking directions to this stop"), image: UIImage(systemName: "figure.walk"), children: actions)
     }
 
     var currentPreviewingViewController: UIViewController?
@@ -345,7 +364,7 @@ class TripFloatingPanelController: UIViewController,
         }
 
         let previewProvider: OBAListViewMenuActions.PreviewProvider = { [unowned self] () -> UIViewController? in
-            let stopVC = StopViewController(application: self.application, stopID: tripStop.stop.id)
+            let stopVC = StopViewController(application: self.application, stopID: tripStop.stopID)
             self.currentPreviewingViewController = stopVC
             return stopVC
         }

@@ -104,7 +104,7 @@ public class StopViewController: UIViewController,
     var stopArrivals: StopArrivals? {
         didSet {
             if let stopArrivals = stopArrivals {
-                stop = stopArrivals.stop
+//                stop = stopArrivals.stop
                 dataDidReload()
                 beginUserActivity()
             }
@@ -319,29 +319,29 @@ public class StopViewController: UIViewController,
             self.addBookmark(sender: action)
         }
 
-        let alertsAction = UIAction(title: Strings.serviceAlerts, image: UIImage(systemName: "exclamationmark.circle")) { [unowned self] _ in
-            let controller = ServiceAlertListController(application: self.application, serviceAlerts: self.stopArrivals?.serviceAlerts ?? [])
-            self.application.viewRouter.navigate(to: controller, from: self)
-        }
+//        let alertsAction = UIAction(title: Strings.serviceAlerts, image: UIImage(systemName: "exclamationmark.circle")) { [unowned self] _ in
+//            let controller = ServiceAlertListController(application: self.application, serviceAlerts: self.stopArrivals?.serviceAlerts ?? [])
+//            self.application.viewRouter.navigate(to: controller, from: self)
+//        }
 
         // Disable the alerts action if there are no service alerts.
-        if (stopArrivals?.serviceAlerts ?? []).isEmpty {
-            alertsAction.attributes = .disabled
-        }
+//        if (stopArrivals?.serviceAlerts ?? []).isEmpty {
+//            alertsAction.attributes = .disabled
+//        }
 
-        return UIMenu(title: "File", options: .displayInline, children: [bookmarkAction, alertsAction])
+        return UIMenu(title: "File", options: .displayInline, children: [bookmarkAction/*, alertsAction*/])
     }
 
     fileprivate func locationMenu() -> UIMenu {
         let nearbyAction = UIAction(title: OBALoc("stops_controller.nearby_stops", value: "Nearby Stops", comment: "Title of the row that will show stops that are near this one."), image: UIImage(systemName: "location")) { [unowned self] _ in
-            let nearbyController = NearbyStopsViewController(coordinate: self.stop!.coordinate, application: self.application)
+            let nearbyController = NearbyStopsViewController(coordinate: self.stop!.location.coordinate, application: self.application)
             self.application.viewRouter.navigate(to: nearbyController, from: self)
         }
 
         var walkingDirectionActions: [UIMenuElement] = []
 
         if let stop = self.stop {
-            if let appleMapsURL = AppInterop.appleMapsWalkingDirectionsURL(coordinate: stop.coordinate) {
+            if let appleMapsURL = AppInterop.appleMapsWalkingDirectionsURL(coordinate: stop.location.coordinate) {
                 let appleMaps = UIAction(title: OBALoc("stops_controller.walking_directions_apple", value: "Walking Directions (Apple Maps)", comment: "Button that launches Apple's maps.app with walking directions to this stop")) { [unowned self] _ in
                     self.application.open(appleMapsURL, options: [:], completionHandler: nil)
                 }
@@ -808,8 +808,9 @@ public class StopViewController: UIViewController,
     // MARK: - Data/Service Alerts
 
     private var serviceAlertsSection: OBAListViewSection? {
-        guard let alerts = stopArrivals?.serviceAlerts, alerts.count > 0 else { return nil }
-        return listSection(serviceAlerts: alerts, showSectionTitle: true, sectionID: ListSections.serviceAlerts.sectionID)
+        return nil
+//        guard let alerts = stopArrivals?.serviceAlerts, alerts.count > 0 else { return nil }
+//        return listSection(serviceAlerts: alerts, showSectionTitle: true, sectionID: ListSections.serviceAlerts.sectionID)
     }
 
     // MARK: - Data/Load More
@@ -831,18 +832,22 @@ public class StopViewController: UIViewController,
     }
 
     fileprivate var dataAttributionSection: OBAListViewSection {
-        let agencies = Formatters.formattedAgenciesForRoutes(self.stop!.routes)
-        let dataAttributionStringFormat = OBALoc("stop_controller.data_attribution_format", value: "Data provided by %@", comment: "A string listing the data providers (agencies) for this stop's data. It contains one or more providers separated by commas. e.g. Data provided by King County Metro, Sound Transit")
 
-        let dataDateRangeBeforeTime = Date().addingTimeInterval(Double(minutesBefore) * -60.0)
-        let dataDateRangeAfterTime = Date().addingTimeInterval(Double(minutesAfter) * 60.0)
-        let dataDateRangeText = application.formatters.formattedDateRange(from: dataDateRangeBeforeTime, to: dataDateRangeAfterTime)
-
-        let dataAttribution = FootnoteItem(text: String(format: dataAttributionStringFormat, agencies), subtitle: dataDateRangeText)
-
-        var section = listViewSection(for: .dataAttribution, title: nil, items: [dataAttribution])
-        section.configuration.backgroundColor = .clear
-        return section
+        return listViewSection(for: .dataAttribution, title: nil, items: [
+            FootnoteItem(text: "\(#function) unimplemented")
+        ])
+//        let agencies = Formatters.formattedAgenciesForRoutes(self.stop!.routes)
+//        let dataAttributionStringFormat = OBALoc("stop_controller.data_attribution_format", value: "Data provided by %@", comment: "A string listing the data providers (agencies) for this stop's data. It contains one or more providers separated by commas. e.g. Data provided by King County Metro, Sound Transit")
+//
+//        let dataDateRangeBeforeTime = Date().addingTimeInterval(Double(minutesBefore) * -60.0)
+//        let dataDateRangeAfterTime = Date().addingTimeInterval(Double(minutesAfter) * 60.0)
+//        let dataDateRangeText = application.formatters.formattedDateRange(from: dataDateRangeBeforeTime, to: dataDateRangeAfterTime)
+//
+//        let dataAttribution = FootnoteItem(text: String(format: dataAttributionStringFormat, agencies), subtitle: dataDateRangeText)
+//
+//        var section = listViewSection(for: .dataAttribution, title: nil, items: [dataAttribution])
+//        section.configuration.backgroundColor = .clear
+//        return section
     }
 
     // MARK: - Data/More Options

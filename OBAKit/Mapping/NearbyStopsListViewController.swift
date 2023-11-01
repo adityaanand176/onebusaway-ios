@@ -62,7 +62,8 @@ class NearbyStopsListViewController: UIViewController, UICollectionViewDelegate,
 
         init(_ stop: Stop) {
             self.title = stop.nameWithLocalizedDirectionAbbreviation
-            self.subtitle = stop.subtitle
+//            self.subtitle = stop.subtitle
+            self.subtitle = "TODO ME"
             self.image = Icons.transportIcon(from: stop.prioritizedRouteTypeForDisplay)
             self.type = .stop(stopID: stop.id)
         }

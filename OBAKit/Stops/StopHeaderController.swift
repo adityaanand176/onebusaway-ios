@@ -36,12 +36,12 @@ struct StopHeaderItem: OBAListViewItem {
         self.stop = stop
         self.stopName = stop.name
         self.stopNumber = Formatters.formattedCodeAndDirection(stop: stop)
-
-        if let formattedRoutes = Formatters.formattedRoutes(stop.routes), !formattedRoutes.isEmpty {
-            self.subtitleText = formattedRoutes
-        } else {
-            self.subtitleText = Formatters.formattedAgenciesForRoutes(stop.routes)
-        }
+        self.subtitleText = "\(#function) unimplemented"
+//        if let formattedRoutes = Formatters.formattedRoutes(stop.routes), !formattedRoutes.isEmpty {
+//            self.subtitleText = formattedRoutes
+//        } else {
+//            self.subtitleText = Formatters.formattedAgenciesForRoutes(stop.routes)
+//        }
 
         self.stopIconFactory = application.stopIconFactory
     }

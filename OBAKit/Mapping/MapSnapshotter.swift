@@ -38,7 +38,7 @@ class MapSnapshotter: NSObject {
     private func snapshotOptions(stop: Stop, traitCollection: UITraitCollection) -> MKMapSnapshotter.Options {
         let options = MKMapSnapshotter.Options()
         options.size = size
-        options.region = MapHelpers.coordinateRegionWith(center: stop.coordinate, zoomLevel: zoomLevel, size: size)
+        options.region = MapHelpers.coordinateRegionWith(center: stop.location.coordinate, zoomLevel: zoomLevel, size: size)
         options.scale = scale
         options.mapType = mapType
 
@@ -80,7 +80,7 @@ class MapSnapshotter: NSObject {
             // Calculate the point at which to draw the stop icon.
             // It needs to be shifted up by 1/2 the stop icon height
             // in order to draw it at the proper location.
-            var point = snapshot.point(for: stop.coordinate)
+            var point = snapshot.point(for: stop.location.coordinate)
             point.y -= (stopIcon.size.height / 2.0)
 
             // Render the composited image.

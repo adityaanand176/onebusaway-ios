@@ -60,10 +60,10 @@ class PulsingVehicleAnnotationView: PulsingAnnotationView {
                 let tripStatus = annotation.tripStatus
             else { return }
 
-            updateHeading(tripStatus: tripStatus)
+            updateHeading(tripStatus: tripStatus.tripStatus)
 
-            routeType = tripStatus.activeTrip.route.routeType
-            isRealTime = tripStatus.isRealTime
+//            routeType = tripStatus.activeTrip.route.routeType
+            isRealTime = tripStatus.tripStatus.isRealTime
         }
     }
 

@@ -14,18 +14,17 @@ import OBAKitCore
 
 // MARK: - MapRegionDelegate
 
-@objc(OBAMapRegionDelegate)
-public protocol MapRegionDelegate {
-    @objc optional func mapRegionManager(_ manager: MapRegionManager, stopsUpdated stops: [Stop])
+public protocol MapRegionDelegate: AnyObject {
+    func mapRegionManager(_ manager: MapRegionManager, stopsUpdated stops: [Stop])
 
-    @objc optional func mapRegionManager(_ manager: MapRegionManager, noSearchResults response: SearchResponse)
-    @objc optional func mapRegionManager(_ manager: MapRegionManager, disambiguateSearch response: SearchResponse)
-    @objc optional func mapRegionManager(_ manager: MapRegionManager, showSearchResult response: SearchResponse)
+    func mapRegionManager(_ manager: MapRegionManager, noSearchResults response: SearchResponse)
+    func mapRegionManager(_ manager: MapRegionManager, disambiguateSearch response: SearchResponse)
+    func mapRegionManager(_ manager: MapRegionManager, showSearchResult response: SearchResponse)
 
-    @objc optional func mapRegionManagerDismissSearch(_ manager: MapRegionManager)
+    func mapRegionManagerDismissSearch(_ manager: MapRegionManager)
 
-    @objc optional func mapRegionManagerDataLoadingStarted(_ manager: MapRegionManager)
-    @objc optional func mapRegionManagerDataLoadingFinished(_ manager: MapRegionManager)
+    func mapRegionManagerDataLoadingStarted(_ manager: MapRegionManager)
+    func mapRegionManagerDataLoadingFinished(_ manager: MapRegionManager)
 }
 
 protocol MapRegionMapViewDelegate: NSObjectProtocol {
@@ -211,7 +210,7 @@ public class MapRegionManager: NSObject,
     deinit {
         mapView.delegate = nil
         mapView.removeAllAnnotations()
-        delegates.removeAllObjects()
+//        delegates.removeAllObjects()
         application.locationService.removeDelegate(self)
         application.regionsService.removeDelegate(self)
         regionChangeRequestTimer?.invalidate()
@@ -272,62 +271,63 @@ public class MapRegionManager: NSObject,
 
     // MARK: - Delegates
 
-    private let delegates = NSHashTable<MapRegionDelegate>.weakObjects()
-
+//    private let delegates = NSHashTable<MapRegionDelegate>.weakObjects()
+    private var delegates: [MapRegionDelegate] = []
     public func addDelegate(_ delegate: MapRegionDelegate) {
-        delegates.add(delegate)
+        delegates.append(delegate)
+//        delegates.add(delegate)
     }
 
     public func removeDelegate(_ delegate: MapRegionDelegate) {
-        delegates.remove(delegate)
+//        delegates.remove(delegate)
     }
 
     // MARK: - Delegates/Search
 
     private func notifyDelegatesNoSearchResults(response: SearchResponse) {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManager?(self, noSearchResults: response)
+        for delegate in delegates {
+            delegate.mapRegionManager(self, noSearchResults: response)
         }
     }
 
     private func notifyDelegatesDisambiguationRequired(response: SearchResponse) {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManager?(self, disambiguateSearch: response)
+        for delegate in delegates {
+            delegate.mapRegionManager(self, disambiguateSearch: response)
         }
     }
 
     private func notifyDelegatesShowSearchResult(response: SearchResponse) {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManager?(self, showSearchResult: response)
+        for delegate in delegates {
+            delegate.mapRegionManager(self, showSearchResult: response)
         }
     }
 
     private func notifyDelegatesStopsChanged() {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManager?(self, stopsUpdated: stops)
+        for delegate in delegates {
+            delegate.mapRegionManager(self, stopsUpdated: stops)
         }
     }
 
     /// Notifies delegates that data loading has started.
     /// In UI terms, this should mean that a loading indicator is shown in the app.
     private func notifyDelegatesDataLoadingStarted() {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManagerDataLoadingStarted?(self)
+        for delegate in delegates {
+            delegate.mapRegionManagerDataLoadingStarted(self)
         }
     }
 
     /// Notifies delegates that data loading has finished.
     /// In UI terms, this should mean that a loading indicator is hidden in the app.
     private func notifyDelegatesDataLoadingFinished() {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManagerDataLoadingFinished?(self)
+        for delegate in delegates {
+            delegate.mapRegionManagerDataLoadingFinished(self)
         }
     }
 
     /// Instructs delegates to close/dismiss their search UIs.
     private func notifyDelegatesDismissSearch() {
-        for delegate in delegates.allObjects {
-            delegate.mapRegionManagerDismissSearch?(self)
+        for delegate in delegates {
+            delegate.mapRegionManagerDismissSearch(self)
         }
     }
 
@@ -359,8 +359,8 @@ public class MapRegionManager: NSObject,
         let rejectedStops = stops.filter { bookmarkStopIDs.contains($0.id) }
         let acceptedStops = stops.filter { !rejectedStops.contains($0) }
 
-        mapView.removeAnnotations(rejectedStops)
-        mapView.addAnnotations(acceptedStops)
+        mapView.removeAnnotations(rejectedStops.map(StopAnnotation.init))
+        mapView.addAnnotations(acceptedStops.map(StopAnnotation.init))
 
         notifyDelegatesStopsChanged()
     }
@@ -450,17 +450,18 @@ public class MapRegionManager: NSObject,
     private func displaySearchResult(stopsForRoute: StopsForRoute) {
         mapView.removeAllAnnotations()
 
-        mapView.addOverlays(stopsForRoute.polylines)
-        mapView.addAnnotations(stopsForRoute.stops)
+        mapView.addOverlays(stopsForRoute.polylines.compactMap(\.polyline))
+//        mapView.addAnnotations(stopsForRoute.stops)
 
         let inset: CGFloat = 40.0
         mapView.visibleMapRect = self.mapView.mapRectThatFits(stopsForRoute.mapRect, edgePadding: UIEdgeInsets(top: inset, left: inset, bottom: 200, right: inset))
     }
 
     private func displaySearchResult(stop: Stop) {
-        mapView.addAnnotation(stop)
-        mapView.setCenterCoordinate(centerCoordinate: stop.coordinate, zoomLevel: 18, animated: true)
-        mapView.selectAnnotation(stop, animated: false)
+        let stopAnnotation = StopAnnotation(stop: stop)
+        mapView.addAnnotation(stopAnnotation)
+        mapView.setCenterCoordinate(centerCoordinate: stop.location.coordinate, zoomLevel: 18, animated: true)
+        mapView.selectAnnotation(stopAnnotation, animated: false)
     }
 
     // MARK: - Search/Route
@@ -526,11 +527,11 @@ public class MapRegionManager: NSObject,
         updateZoomWarningOverlay(mapHeight: mapView.visibleMapRect.height)
 
         guard mapView.visibleMapRect.height <= MapRegionManager.requiredHeightToShowStops else {
-            mapView.removeAnnotations(type: Stop.self)
+            mapView.removeAnnotations(type: StopAnnotation.self)
             return
         }
 
-        let visibleStops = mapView.annotations(in: mapView.visibleMapRect).filter(type: Stop.self)
+        let visibleStops = mapView.annotations(in: mapView.visibleMapRect).filter(type: StopAnnotation.self)
         for s in visibleStops {
             if let stopView = mapView.view(for: s) as? StopAnnotationView {
                 stopView.isHidingExtraStopAnnotationData = shouldHideExtraStopAnnotationData
@@ -602,7 +603,7 @@ public class MapRegionManager: NSObject,
         case is Bookmark: return MKMapView.reuseIdentifier(for: StopAnnotationView.self)
         case is MKUserLocation: return self.userLocationAnnotationReuseIdentifier
         case is Region: return MKMapView.reuseIdentifier(for: MKMarkerAnnotationView.self)
-        case is Stop: return MKMapView.reuseIdentifier(for: StopAnnotationView.self)
+        case is StopAnnotation: return MKMapView.reuseIdentifier(for: StopAnnotationView.self)
         default: return nil
         }
     }

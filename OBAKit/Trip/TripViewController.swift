@@ -167,8 +167,8 @@ class TripViewController: UIViewController,
             return
         }
 
-        let parts = [tripStatus.vehicleID, tripStatus.activeTrip.route.shortName].compactMap { $0 }
-
+//        let parts = [tripStatus.vehicleID, tripStatus.activeTrip.route.shortName].compactMap { $0 }
+        let parts = [tripStatus.vehicleID].compactMap { $0 }
         if parts.count > 0 {
             titleView.topLabel.text = parts.joined(separator: " - ")
         }
@@ -271,11 +271,12 @@ class TripViewController: UIViewController,
                 return
             }
 
+            let tripStatusAnnotation = TripStatusAnnotation(tripStatus: currentTripStatus)
             if let vehicleAnnotation = vehicleAnnotation {
-                vehicleAnnotation.tripStatus = currentTripStatus
+                vehicleAnnotation.tripStatus = tripStatusAnnotation
             }
             else {
-                vehicleAnnotation = VehicleAnnotation(tripStatus: currentTripStatus)
+                vehicleAnnotation = VehicleAnnotation(tripStatus: tripStatusAnnotation)
                 self.mapView.addAnnotation(vehicleAnnotation!)
             }
 
@@ -319,7 +320,7 @@ class TripViewController: UIViewController,
         await MainActor.run {
             self.tripDetailsController.tripDetails = trip
 
-            self.mapView.updateAnnotations(with: trip.stopTimes)
+//            self.mapView.updateAnnotations(with: trip.stopTimes)
 
             self.currentTripStatus = trip.status
 
@@ -332,7 +333,7 @@ class TripViewController: UIViewController,
             }
 
             if let arrivalDeparture = self.tripConvertible.arrivalDeparture {
-                let userDestinationStopTime = trip.stopTimes.filter { $0.stopID == arrivalDeparture.stopID }.first
+                let userDestinationStopTime = trip.schedule.stopTimes.filter { $0.stopID == arrivalDeparture.stopID }.first
                 self.selectedStopTime = userDestinationStopTime
             }
 
@@ -440,7 +441,7 @@ class TripViewController: UIViewController,
         guard !skipNextStopTimeHighlight else { return }
 
         func mapViewAnnotationSelectionComplete() {
-            self.tripDetailsController.highlightStopInList(stopTime.stop)
+            self.tripDetailsController.highlightStopInList(stopID: stopTime.stopID)
         }
 
         if self.mapView.hasBeenTouched {
@@ -463,7 +464,7 @@ class TripViewController: UIViewController,
 
     public func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
         guard let stopTime = view.annotation as? TripStopTime else { return }
-        application.viewRouter.navigateTo(stop: stopTime.stop, from: self)
+        application.viewRouter.navigateTo(stopID: stopTime.stopID, from: self)
     }
 
     // TODO FIXME: DRY up with MapRegionManager
@@ -521,7 +522,7 @@ class TripViewController: UIViewController,
 
                 let calloutLabel = UILabel.autolayoutNew()
                 calloutLabel.textColor = ThemeColors.shared.secondaryLabel
-                calloutLabel.text = application.formatters.timeFormatter.string(from: stopTime.arrivalDate)
+//                calloutLabel.text = application.formatters.timeFormatter.string(from: stopTime.schedule.arrivalDate)
                 view.detailCalloutAccessoryView = calloutLabel
             }
 
@@ -535,31 +536,31 @@ class TripViewController: UIViewController,
         switch annotation {
         case is VehicleAnnotation: return MKMapView.reuseIdentifier(for: PulsingVehicleAnnotationView.self)
         case is MKUserLocation: return MKMapView.reuseIdentifier(for: PulsingAnnotationView.self)
-        case is TripStopTime: return MKMapView.reuseIdentifier(for: MinimalStopAnnotationView.self)
+        case is TripStopTimeAnnotation: return MKMapView.reuseIdentifier(for: MinimalStopAnnotationView.self)
         default: return nil
         }
     }
 
     public var selectedStopTime: TripStopTime? {
         didSet {
-            guard !isBeingPreviewed else { return }
-
-            var animated = true
-            if isFirstStopTimeLoad {
-                animated = false
-                isFirstStopTimeLoad.toggle()
-            }
-            self.mapView.deselectAnnotation(oldValue, animated: animated)
-
-            guard oldValue != self.selectedStopTime,
-                let selectedStopTime = self.selectedStopTime else { return }
-
-            // Fixes #220: Find matching trip stop using stop ID instead of using pointers.
-            if let annotation = self.mapView.annotations
-                .filter(type: TripStopTime.self)
-                .filter({ $0.stopID == selectedStopTime.stopID }).first {
-                self.mapView.selectAnnotation(annotation, animated: true)
-            }
+//            guard !isBeingPreviewed else { return }
+//
+//            var animated = true
+//            if isFirstStopTimeLoad {
+//                animated = false
+//                isFirstStopTimeLoad.toggle()
+//            }
+//            self.mapView.deselectAnnotation(oldValue, animated: animated)
+//
+//            guard oldValue != self.selectedStopTime,
+//                let selectedStopTime = self.selectedStopTime else { return }
+//
+//            // Fixes #220: Find matching trip stop using stop ID instead of using pointers.
+//            if let annotation = self.mapView.annotations
+//                .filter(type: TripStopTime.self)
+//                .filter({ $0.stopID == selectedStopTime.stopID }).first {
+//                self.mapView.selectAnnotation(annotation, animated: true)
+//            }
         }
     }
     private var isFirstStopTimeLoad = true

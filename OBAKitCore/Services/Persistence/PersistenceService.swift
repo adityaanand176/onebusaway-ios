@@ -44,7 +44,7 @@ public actor PersistenceService {
 
     public let configuration: Configuration
     public let logger = os.Logger(subsystem: "OBAKitCore", category: "PersistenceService")
-    public let database: DatabaseQueue
+    public nonisolated let database: DatabaseQueue
 
     public init(_ configuration: Configuration) throws {
         self.configuration = configuration
@@ -142,5 +142,7 @@ public actor PersistenceService {
                 try situation.insert(into: db)
             }
         }
+
+        logger.info("Processed \(references.agencies.count) agencies, \(references.routes.count) routes, \(references.stops.count) stops, \(references.trips.count) trips, and \(references.situations.count) situations.")
     }
 }

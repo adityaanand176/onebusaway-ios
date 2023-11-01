@@ -25,17 +25,18 @@ extension AgencyAlertListViewConverters where Self: UIViewController {
     /// - Parameter agencyAlerts: An array of `AgencyAlert`s.
     /// - Returns: A sorted array of `[OBAListViewSection]` representing the array of `AgencyAlert`s for use with OBAListView.  The sections provided will have a `agency_alert` prefix for its section ID.
     func listSections(agencyAlerts: [AgencyAlert]) -> [OBAListViewSection] {
-        let groupedAlerts = Dictionary(grouping: agencyAlerts, by: { $0.agency?.agency.name ?? "" })
-        return groupedAlerts.map { group -> OBAListViewSection in
-            let presentAlertAction: OBAListViewAction<TransitAlertDataListViewModel> = { [weak self] item in self?.presentAlert(item) }
-            let viewModels: [TransitAlertDataListViewModel] = group.value.map { alert -> TransitAlertDataListViewModel in
-                let isUnread = application.alertsStore.isAlertUnread(alert)
-                return TransitAlertDataListViewModel(alert, isUnread: isUnread, forLocale: Locale.current, onSelectAction: presentAlertAction)
-            }
-
-            let alerts = viewModels.sorted(by: \.title) // remove duplicates
-            return OBAListViewSection(id: "agency_alerts_\(group.key)", title: group.key, contents: alerts)
-        }.sorted(by: \.id)
+        fatalError("\(#function) unimplemented")
+//        let groupedAlerts = Dictionary(grouping: agencyAlerts, by: { $0.agency?.agency.name ?? "" })
+//        return groupedAlerts.map { group -> OBAListViewSection in
+//            let presentAlertAction: OBAListViewAction<TransitAlertDataListViewModel> = { [weak self] item in self?.presentAlert(item) }
+//            let viewModels: [TransitAlertDataListViewModel] = group.value.map { alert -> TransitAlertDataListViewModel in
+//                let isUnread = application.alertsStore.isAlertUnread(alert)
+//                return TransitAlertDataListViewModel(alert, isUnread: isUnread, forLocale: Locale.current, onSelectAction: presentAlertAction)
+//            }
+//
+//            let alerts = viewModels.sorted(by: \.title) // remove duplicates
+//            return OBAListViewSection(id: "agency_alerts_\(group.key)", title: group.key, contents: alerts)
+//        }.sorted(by: \.id)
     }
 
     /// Converts an array of `ServiceAlert`s into `OBAListViewSection`,  which can be displayed by OBAListView.

@@ -270,6 +270,26 @@ class MapFloatingPanelController: VisualEffectViewController,
 // MARK: - MapRegionDelegate
 
 extension MapFloatingPanelController: MapRegionDelegate {
+    func mapRegionManagerDismissSearch(_ manager: MapRegionManager) {
+        // no-op
+    }
+    
+    func mapRegionManagerDataLoadingStarted(_ manager: MapRegionManager) {
+        // no-op
+    }
+    
+    func mapRegionManagerDataLoadingFinished(_ manager: MapRegionManager) {
+        // no-op
+    }
+
+    func mapRegionManager(_ manager: MapRegionManager, noSearchResults response: SearchResponse) {
+        // no-op
+    }
+
+    func mapRegionManager(_ manager: MapRegionManager, disambiguateSearch response: SearchResponse) {
+        // no-op
+    }
+
     public func mapRegionManager(_ manager: MapRegionManager, showSearchResult response: SearchResponse) {
         exitSearchMode()
     }

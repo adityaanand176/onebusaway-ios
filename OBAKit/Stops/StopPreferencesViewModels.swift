@@ -22,7 +22,7 @@ struct StopPreferencesRouteViewModel: Identifiable, Hashable, Equatable {
     init(_ route: Route) {
         self.id = route.id
         self.displayName = route.longName ?? route.shortName
-        self.agencyName = route.agency.name
+        self.agencyName = "\(#function) unimplemented" // route.agency.name
     }
 }
 
@@ -53,7 +53,8 @@ struct StopPreferencesViewModel {
 
     init(_ stop: Stop) {
         self.stopID = stop.id
-        self.availableRoutes = stop.routes.localizedCaseInsensitiveSort().map(StopPreferencesRouteViewModel.init)
+        self.availableRoutes = []   // TODO: this
+//        self.availableRoutes = stop.routes.localizedCaseInsensitiveSort().map(StopPreferencesRouteViewModel.init)
         self.selectedRoutes = Set<RouteID>(availableRoutes.map { $0.id })
     }
 }
