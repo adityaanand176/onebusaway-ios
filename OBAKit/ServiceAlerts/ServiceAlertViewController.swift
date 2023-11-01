@@ -29,7 +29,8 @@ import SafariServices
 // displayPage()        main
 //  ↓
 // Done.
-final class ServiceAlertViewController: UIViewController, WKNavigationDelegate {
+
+final class ServiceAlertViewController: PersistenceTaskController<DetailedSituation>, WKNavigationDelegate {
     lazy var webView: DocumentWebView = {
         let config = WKWebViewConfiguration()
         config.dataDetectorTypes = [.all]
@@ -40,17 +41,15 @@ final class ServiceAlertViewController: UIViewController, WKNavigationDelegate {
         return webView
     }()
 
-    let serviceAlert: ServiceAlert
-    let application: Application
+    let situationID: Situation.ID
 
     let queue: DispatchQueue = .init(label: "servicealert_detail_html_builder",
                                      qos: .userInitiated,
                                      attributes: .concurrent)
 
-    init(serviceAlert: ServiceAlert, application: Application) {
-        self.serviceAlert = serviceAlert
-        self.application = application
-        super.init(nibName: nil, bundle: nil)
+    init(situationID: Situation.ID, application: Application) {
+        self.situationID = situationID
+        super.init(application: application)
 
         title = Strings.serviceAlert
     }
@@ -73,7 +72,7 @@ final class ServiceAlertViewController: UIViewController, WKNavigationDelegate {
 
         preparePage()
 
-        application.userDataStore.markRead(serviceAlert: serviceAlert)
+//        application.userDataStore.markRead(serviceAlert: serviceAlert)
     }
 
     // MARK: - WKNavigationDelegate
@@ -113,18 +112,36 @@ final class ServiceAlertViewController: UIViewController, WKNavigationDelegate {
         }
     }
 
+    override func updateUI() {
+        Task(priority: .userInitiated) {
+            self.buildPageContent()
+        }
+    }
+
+    override func fetchFromRemote() async throws {
+//        application.apiService?.get
+    }
+
+    override func fetchFromPersistence() async throws -> DetailedSituation? {
+        return try await persistence.database.read { [situationID] db -> DetailedSituation? in
+            try Situation.fetchDetailedSituation(db, id: situationID)
+        }
+    }
+
     private func buildPageContent() {
+        guard let data else { return }
         let builder = HTMLBuilder()
-        builder.append(.h1, value: serviceAlert.summary?.value ?? Strings.serviceAlert)
-        builder.append(.p, value: application.formatters.shortDateTimeFormatter.string(from: serviceAlert.createdAt))
-        if let description = serviceAlert.situationDescription {
+
+        builder.append(.h1, value: data.situation.summary?.value ?? Strings.serviceAlert)
+        builder.append(.p, value: application.formatters.shortDateTimeFormatter.string(from: data.situation.creationTime))
+        if let description = data.situation.description {
             // Some agencies may separate information using `\n`, so we try to account for that.
             description.value.components(separatedBy: "\n").forEach {
                 builder.append(.p, value: $0)
             }
         }
 
-        if let urlString = serviceAlert.urlString?.value {
+        if let urlString = data.situation.url?.value {
             let fmt = OBALoc("service_alert_controller.learn_more_fmt", value: "Learn more: %@", comment: "Directs the user to tap on the link that comes at the end of the string. Learn more: <HYPERLINK IS INSERTED HERE>")
             builder.append(.p, value: String(format: fmt, urlString))
         }
@@ -141,8 +158,8 @@ final class ServiceAlertViewController: UIViewController, WKNavigationDelegate {
 //        }
 
         // Timeframe
-        let activeWindows: [String] = serviceAlert.activeWindows
-            .map { $0.interval }
+
+        let activeWindows: [String] = data.activeWindows
             .sorted()
             .compactMap { application.formatters.formattedDateRange($0) }
 
@@ -156,7 +173,7 @@ final class ServiceAlertViewController: UIViewController, WKNavigationDelegate {
         }
 
         // Agencies
-        let affectedAgencies = serviceAlert.affectedAgencies.map { $0.name }.sorted()
+        let affectedAgencies = data.affectedAgencies.map(\.name).sorted()
         if affectedAgencies.count > 0 {
             builder.append(.h2, value: OBALoc("service_alert_controller.affected_agencies", value: "Affected Agencies", comment: "The transit agencies affected by this service alert."))
             builder.append(.ul) { b in
@@ -167,7 +184,7 @@ final class ServiceAlertViewController: UIViewController, WKNavigationDelegate {
         }
 
         // Routes
-        let affectedRoutes = serviceAlert.affectedRoutes.map { $0.shortName }.sorted()
+        let affectedRoutes = data.affectedRoutes.map(\.shortName).sorted()
         if affectedRoutes.count > 0 {
             builder.append(.h2, value: OBALoc("service_alert_controller.affected_routes", value: "Affected Routes", comment: "The routes affected by this service alert."))
             builder.append(.ul) { b in
@@ -178,7 +195,7 @@ final class ServiceAlertViewController: UIViewController, WKNavigationDelegate {
         }
 
         // Stops
-        let affectedStops = serviceAlert.affectedStops.map { Formatters.formattedTitle(stop: $0) }.sorted()
+        let affectedStops = data.affectedStops.map { Formatters.formattedTitle(stop: $0) }.sorted()
         if affectedStops.count > 0 {
             builder.append(.h2, value: OBALoc("service_alert_controller.affected_stops", value: "Affected Stops", comment: "The stops affected by this service alert."))
             builder.append(.ul) { b in
@@ -190,7 +207,7 @@ final class ServiceAlertViewController: UIViewController, WKNavigationDelegate {
 
         // Trips
 
-        let affectedTrips = serviceAlert.affectedTrips.map { $0.routeHeadsign }.sorted()
+        let affectedTrips = data.affectedTrips.map(\.routeHeadsign).sorted()
         if affectedTrips.count > 0 {
             builder.append(.h2, value: OBALoc("service_alert_controller.affected_trips", value: "Affected Trips", comment: "The trips affected by this service alert."))
             builder.append(.ul) { b in

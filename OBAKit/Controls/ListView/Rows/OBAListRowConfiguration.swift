@@ -46,6 +46,13 @@ public struct OBAListRowConfiguration: OBAContentConfiguration, Equatable {
         case string(String?)
         case attributed(NSAttributedString?)
 
+        var stringValue: String? {
+            switch self {
+            case .string(let string): return string
+            case .attributed(let attributed): return attributed?.string
+            }
+        }
+
         public func hash(into hasher: inout Hasher) {
             switch self {
             case .string(let string):

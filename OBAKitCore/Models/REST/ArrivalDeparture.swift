@@ -181,7 +181,7 @@ public struct ArrivalDeparture: Identifiable, Codable, Hashable {
 
     /// A composite of the route name and headsign.
     public var routeAndHeadsign: String {
-        return "route and headsign!"
+        return routeID
 //        [String.nilifyBlankValue(routeName), String.nilifyBlankValue(tripHeadsign)]
 //            .compactMap { $0 }
 //            .joined(separator: " - ")

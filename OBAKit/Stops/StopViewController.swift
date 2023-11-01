@@ -445,7 +445,9 @@ public class StopViewController: UIViewController,
         title = Strings.updating
 
         do {
-            let stopArrivals = try await apiService.getArrivalsAndDeparturesForStop(id: stopID, minutesBefore: minutesBefore, minutesAfter: minutesAfter).entry
+            let response = try await apiService.getArrivalsAndDeparturesForStop(id: stopID, minutesBefore: minutesBefore, minutesAfter: minutesAfter)
+            try await PersistenceServiceRegion[application.currentRegion].processReferences(response)
+            let stopArrivals = response.entry
 
             await MainActor.run {
                 self.operationError = nil
@@ -808,8 +810,22 @@ public class StopViewController: UIViewController,
     // MARK: - Data/Service Alerts
 
     private var serviceAlertsSection: OBAListViewSection? {
-        return nil
-//        guard let alerts = stopArrivals?.serviceAlerts, alerts.count > 0 else { return nil }
+        guard let alerts: [String] = stopArrivals?.arrivalsAndDepartures
+            .map(\.situationIDs)
+            .reduce(into: [], { $0.append(contentsOf: $1) })
+            .uniqued
+            .sorted() else {
+            return nil
+        }
+
+        let items: [AnyOBAListViewItem] = alerts.map { alert in
+            OBAListRowView.SubtitleViewModel(image: nil, title: alert, subtitle: nil, accessoryType: .disclosureIndicator) { [weak self] model in
+                guard let self, let id = model.title.stringValue else { return }
+                self.application.viewRouter.navigate(toSituationID: id, from: self)
+            }.typeErased
+        }
+
+        return OBAListViewSection(id: ListSections.serviceAlerts.sectionID, title: "Service Alert", contents: items)
 //        return listSection(serviceAlerts: alerts, showSectionTitle: true, sectionID: ListSections.serviceAlerts.sectionID)
     }
 

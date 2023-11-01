@@ -116,6 +116,11 @@ public class ViewRouter: NSObject, UINavigationControllerDelegate {
         }
     }
 
+    public func navigate(toSituationID situationID: Situation.ID, from fromController: UIViewController) {
+        let view = ServiceAlertViewController(situationID: situationID, application: application)
+        present(view, from: fromController)
+    }
+
     // MARK: - Helpers
 
     /// Creates and configures a `UINavigationController` for the specified controller, setting some preferred options along the way.

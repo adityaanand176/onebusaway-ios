@@ -85,12 +85,17 @@ public struct TimeWindow: Decodable, Comparable, Hashable {
         case from, to
     }
 
-    // TimeWindow uses secondsSince1970 instead of milliseconds.
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        from = Date(timeIntervalSince1970: TimeInterval(try container.decode(Int.self, forKey: .from)))
-        to = Date(timeIntervalSince1970: TimeInterval(try container.decode(Int.self, forKey: .to)))
+    public init(from: Date, to: Date) {
+        self.from = from
+        self.to = to
     }
+
+    // TimeWindow uses secondsSince1970 instead of milliseconds.
+//    public init(from decoder: Decoder) throws {
+//        let container = try decoder.container(keyedBy: CodingKeys.self)
+//        from = Date(timeIntervalSince1970: TimeInterval(try container.decode(Int.self, forKey: .from)))
+//        to = Date(timeIntervalSince1970: TimeInterval(try container.decode(Int.self, forKey: .to)))
+//    }
 
     public static func < (lhs: TimeWindow, rhs: TimeWindow) -> Bool {
         return lhs.interval < rhs.interval
