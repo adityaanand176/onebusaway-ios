@@ -9,8 +9,7 @@
 
 import Foundation
 
-/// Wraps `ArrivalDeparture` and `VehicleStatus` to provide a uniform way to populate
-/// user interfaces that display trip information, like the `TripViewController` in `OBAKit`.
+/// A model that displays Trip information.
 public class TripConvertible: NSObject {
     public var arrivalDeparture: ArrivalDeparture?
     public var vehicleStatus: VehicleStatus?
@@ -20,11 +19,10 @@ public class TripConvertible: NSObject {
     }
 
     public init?(vehicleStatus: VehicleStatus) {
-        fatalError("PR-686 error: \(#function) unimplemented.")
-//        guard vehicleStatus.trip != nil else {
-//            return nil
-//        }
-//        self.vehicleStatus = vehicleStatus
+        guard vehicleStatus.tripID != nil else {
+            return nil
+        }
+        self.vehicleStatus = vehicleStatus
     }
 
     public var vehicleID: String? {
@@ -35,9 +33,8 @@ public class TripConvertible: NSObject {
         return arrivalDeparture?.tripStatus ?? vehicleStatus?.tripStatus
     }
 
-    public var trip: Trip {
-        fatalError("PR-686 error: \(#function) unimplemented.")
-//        return arrivalDeparture?.trip ?? vehicleStatus!.trip!
+    public var tripID: TripIdentifier {
+        return arrivalDeparture?.tripID ?? vehicleStatus!.tripID!
     }
 
     public var serviceDate: Date {

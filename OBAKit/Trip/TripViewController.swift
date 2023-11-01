@@ -315,7 +315,9 @@ class TripViewController: UIViewController,
         // Let the user still look at data if there was already details from a previous request.
         self.floatingPanel.surfaceView.grabberHandle.isHidden = self.tripDetailsController.tripDetails == nil
 
-        let trip = try await apiService.getTrip(tripID: tripConvertible.trip.id, vehicleID: tripConvertible.vehicleID, serviceDate: tripConvertible.serviceDate).entry
+        let response = try await apiService.getTrip(tripID: tripConvertible.tripID, vehicleID: tripConvertible.vehicleID, serviceDate: tripConvertible.serviceDate)
+        let trip = response.entry
+        try await PersistenceServiceRegion[application.currentRegion].processReferences(response)
 
         await MainActor.run {
             self.tripDetailsController.tripDetails = trip
@@ -353,7 +355,13 @@ class TripViewController: UIViewController,
             return
         }
 
-        let response = try await apiService.getShape(id: tripConvertible.trip.shapeID)
+        let tripID = tripConvertible.tripID
+        let trip = try await PersistenceServiceRegion[application.currentRegion].database.read { [tripID] db in
+            try Trip.fetchOne(db, id: tripID)
+        }
+
+        guard let trip else { return }
+        let response = try await apiService.getShape(id: trip.shapeID)
         await MainActor.run {
             guard let polyline = response.entry.polyline else {
                 return
@@ -473,8 +481,8 @@ class TripViewController: UIViewController,
         let renderer = MKPolylineRenderer(polyline: overlay as! MKPolyline) // swiftlint:disable:this force_cast
 
         // Tries to use an agency provided color, if available.
-        var strokeColor = tripConvertible.arrivalDeparture?.route.color ?? ThemeColors.shared.brand
-
+//        var strokeColor = tripConvertible.arrivalDeparture?.route.color ?? ThemeColors.shared.brand
+        var strokeColor = ThemeColors.shared.brand
         // If the user has High Contrast or Reduce Transparency turned ON in iOS,
         // don't apply the transparency to the stroke color.
         let needsIncreasedVisibility =
@@ -507,9 +515,9 @@ class TripViewController: UIViewController,
 
         if let annotationView = annotationView as? PulsingVehicleAnnotationView {
             vehicleAnnotationView = annotationView
-            if let color = tripConvertible.arrivalDeparture?.route.color {
-                annotationView.realTimeAnnotationColor = color
-            }
+//            if let color = tripConvertible.arrivalDeparture?.route.color {
+//                annotationView.realTimeAnnotationColor = color
+//            }
         }
         else if let annotationView = annotationView as? PulsingAnnotationView {
             userLocationAnnotationView = annotationView
