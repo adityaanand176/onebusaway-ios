@@ -28,6 +28,8 @@ extension Stop: FetchableRecord, PersistableRecord, TableRecord, DatabaseTableCr
             table.column(Columns.locationType.name, .integer).notNull()
             table.column(Columns.wheelchairBoarding.name, .text).notNull()
             table.column(Columns.routeIDs.name, .jsonText)
+            table.column(Columns.parentStopID.name, .text)
+                .references(Stop.databaseTableName)
         }
     }
 
@@ -41,6 +43,7 @@ extension Stop: FetchableRecord, PersistableRecord, TableRecord, DatabaseTableCr
         static let locationType = Column(CodingKeys.locationType)
         static let wheelchairBoarding = Column(CodingKeys.wheelchairBoarding)
         static let routeIDs = Column(CodingKeys.routeIDs)
+        static let parentStopID = Column(CodingKeys.parentStopID)
     }
 
     public func aroundInsert(_ db: Database, insert: () throws -> InsertionSuccess) throws {
@@ -50,5 +53,11 @@ extension Stop: FetchableRecord, PersistableRecord, TableRecord, DatabaseTableCr
             try StopRouteRelation(stopID: self.id, routeID: routeID)
                 .insert(db, onConflict: .replace)
         }
+    }
+
+    // MARK: - Relations
+    static private let parentStop = belongsTo(Stop.self, key: Columns.parentStopID.name)
+    var parentStop: QueryInterfaceRequest<Stop> {
+        request(for: Stop.parentStop)
     }
 }

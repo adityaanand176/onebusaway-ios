@@ -87,8 +87,14 @@ public struct Stop: Identifiable, Codable, Hashable {
     /// of this record (e.g., primary key in database), and therefore the stop_id must be dataset unique.
     public let id: StopID
 
+    let latitude: Double
+    let longitude: Double
+
     /// The coordinates of the stop.
-    public let location: CLLocation
+    public var location: CLLocation {
+        return CLLocation(latitude: latitude, longitude: longitude)
+    }
+
     /// Identifies whether this stop represents a stop, station, or station entrance.
     public let locationType: StopLocationType
 
@@ -97,6 +103,8 @@ public struct Stop: Identifiable, Codable, Hashable {
 
     /// A list of route IDs served by this stop.
     public let routeIDs: [RouteID]
+
+    public let parentStopID: StopID?
 
     /// Denotes the availability of wheelchair boarding at this stop.
     public let wheelchairBoarding: WheelchairBoarding
@@ -149,6 +157,7 @@ extension Stop {
         case routes
         case routeIDs = "routeIds"
         case wheelchairBoarding
+        case parentStopID = "parent"
     }
 
     public init(from decoder: Decoder) throws {
@@ -159,13 +168,13 @@ extension Stop {
         id = try container.decode(StopID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
 
-        let lat = try container.decode(Double.self, forKey: .latitude)
-        let lon = try container.decode(Double.self, forKey: .longitude)
-        location = CLLocation(latitude: lat, longitude: lon)
+        latitude = try container.decode(Double.self, forKey: .latitude)
+        longitude = try container.decode(Double.self, forKey: .longitude)
 
         locationType = try container.decode(StopLocationType.self, forKey: .locationType)
         routeIDs = try container.decode([String].self, forKey: .routeIDs)
         wheelchairBoarding = (try container.decodeIfPresent(WheelchairBoarding.self, forKey: .wheelchairBoarding)) ?? .unknown
+        parentStopID = String.nilifyBlankValue(try container.decodeIfPresent(String.self, forKey: .parentStopID))
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -173,11 +182,12 @@ extension Stop {
         try container.encode(code, forKey: .code)
         try container.encodeIfPresent(_direction, forKey: .direction)
         try container.encode(id, forKey: .id)
-        try container.encode(location.coordinate.latitude, forKey: .latitude)
-        try container.encode(location.coordinate.longitude, forKey: .longitude)
+        try container.encode(latitude, forKey: .latitude)
+        try container.encode(longitude, forKey: .longitude)
         try container.encode(locationType.rawValue, forKey: .locationType)
         try container.encode(name, forKey: .name)
         try container.encode(routeIDs, forKey: .routeIDs)
         try container.encode(wheelchairBoarding.rawValue, forKey: .wheelchairBoarding)
+        try container.encodeIfPresent(parentStopID, forKey: .parentStopID)
     }
 }
