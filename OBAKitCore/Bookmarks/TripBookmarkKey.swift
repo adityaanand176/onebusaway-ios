@@ -28,8 +28,7 @@ public struct TripBookmarkKey: Hashable, Equatable {
     }
 
     public init(arrivalDeparture: ArrivalDeparture) {
-        fatalError("PR-686 error: \(#function) unimplemented")
-//        self.init(stopID: arrivalDeparture.stopID, routeShortName: arrivalDeparture.routeShortName, routeID: arrivalDeparture.routeID, tripHeadsign: arrivalDeparture.tripHeadsign ?? "")
+        self.init(stopID: arrivalDeparture.stopID, routeShortName: arrivalDeparture.routeShortName ?? "", routeID: arrivalDeparture.routeID, tripHeadsign: arrivalDeparture.tripHeadsign ?? "")
     }
 
     public init(stopID: StopID, routeShortName: String, routeID: RouteID, tripHeadsign: String) {

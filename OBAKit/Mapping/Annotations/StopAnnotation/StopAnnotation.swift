@@ -9,12 +9,25 @@
 
 import MapKit
 import OBAKitCore
+import GRDB
 
 class StopAnnotation: NSObject, MKAnnotation {
     let stop: Stop
+    let routes: [Route]
+    var isBookmarked: Bool
 
-    init(stop: Stop) {
+    convenience init(stop: Stop, isBookmarked: Bool = false, database: DatabaseReader) throws {
+        let routes = try database.read { db in
+            return try stop.routes.fetchAll(db)
+        }
+
+        self.init(stop: stop, routes: routes, isBookmarked: isBookmarked)
+    }
+
+    init(stop: Stop, routes: [Route] = [], isBookmarked: Bool = false) {
         self.stop = stop
+        self.routes = routes
+        self.isBookmarked = isBookmarked
     }
 
     var coordinate: CLLocationCoordinate2D {
@@ -28,17 +41,12 @@ class StopAnnotation: NSObject, MKAnnotation {
     /// The subtitle for a `Stop` as an `MKAnnotation` is a formatted list of `Route`s served by this `Stop`,
     /// plus the value of `Stop.code`, which is the transit rider-visible stop ID number.
     public var subtitle: String? {
-        [
-            "#\(stop.code)",
-//            Formatters.formattedRoutes(stop.routeIDs)
-        ]
-            .compactMap{$0}
+        ["#\(stop.code)", Formatters.formattedRoutes(routes) ]
+            .compactMap{ $0 }
             .joined(separator: "\n")
     }
 
     public var mapTitle: String? {
-        "map title!!!"
-//        fatalError("\(#function) unimplemented")
-//        return Formatters.formattedRoutes(routes, limit: 3)
+        return Formatters.formattedRoutes(routes, limit: 3)
     }
 }

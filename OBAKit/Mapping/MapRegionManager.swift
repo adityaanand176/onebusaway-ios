@@ -11,6 +11,8 @@ import UIKit
 import CoreLocation
 import MapKit
 import OBAKitCore
+import GRDB
+import Combine
 
 // MARK: - MapRegionDelegate
 
@@ -175,10 +177,15 @@ public class MapRegionManager: NSObject,
         }
     }
 
+    // MARK: - Observation
+    let persistence: PersistenceService
+    private var cancellables: Set<AnyCancellable> = []
+
     // MARK: - Init
 
     public init(application: Application) {
         self.application = application
+        self.persistence = PersistenceServiceRegion[application.currentRegion]
 
         application.userDefaults.register(defaults: [
             mapViewShowsTrafficKey: true,
@@ -202,12 +209,22 @@ public class MapRegionManager: NSObject,
 
         mapView.delegate = self
 
+        ValueObservation
+            .tracking(Stop.fetchAll)
+            .shared(in: persistence.database)
+            .publisher()
+            .assertNoFailure()
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.stops, on: self)
+            .store(in: &cancellables)
+
         Task { @MainActor [weak self] in
             await self?.renderRegionsOnMap()
         }
     }
 
     deinit {
+        cancellables.forEach { $0.cancel() }
         mapView.delegate = nil
         mapView.removeAllAnnotations()
 //        delegates.removeAllObjects()
@@ -248,12 +265,8 @@ public class MapRegionManager: NSObject,
         mapRegion.span.longitudeDelta *= preferredLoadDataRegionFudgeFactor
 
         do {
-            let stops = try await apiService.getStops(region: mapRegion).list
-
-            await MainActor.run {
-                // Some UI code is dependent on this being changed on Main.
-                self.stops = stops
-            }
+            let response = try await apiService.getStops(region: mapRegion)
+            try await persistence.processAPIResponse(response)
         } catch {
             await self.application.displayError(error)
         }
@@ -332,36 +345,40 @@ public class MapRegionManager: NSObject,
     }
 
     // MARK: - Setters
-
+    private var bookmarkedStops: Set<Stop.ID> = []
     public var bookmarks = [Bookmark]() {
         didSet {
-            displayUniqueStopAnnotations()
+            bookmarkedStops = Set(bookmarks.map(\.stopID))
+            
+            // Update existing stops, if new bookmark was added
+            for stop in mapView.annotations.filter(type: StopAnnotation.self) {
+                stop.isBookmarked = bookmarkedStops.contains(stop.stop.id)
+            }
         }
     }
 
     public private(set) var stops = [Stop]() {
         didSet {
-            displayUniqueStopAnnotations()
+            addNewStops()
         }
     }
 
-    private func displayUniqueStopAnnotations() {
-        mapView.removeAnnotations(type: Bookmark.self)
-        var bookmarksHash = [StopID: Bookmark]()
-
-        for bm in bookmarks {
-            bookmarksHash[bm.stopID] = bm
+    private func addNewStops() {
+        let existingStops = mapView.annotations.filter(type: StopAnnotation.self)
+        let existingStopIDs = Set(existingStops.map(\.stop.id))
+        let newStops = self.stops.filter { stop in
+            return existingStopIDs.contains(stop.id) == false
         }
 
-        mapView.addAnnotations(Array(bookmarksHash.values))
+        let newAnnotations: [StopAnnotation] = newStops.compactMap {
+            return try? StopAnnotation(
+                stop: $0,
+                isBookmarked: bookmarkedStops.contains($0.id),
+                database: persistence.database
+            )
+        }
 
-        let bookmarkStopIDs = Set(bookmarksHash.keys)
-        let rejectedStops = stops.filter { bookmarkStopIDs.contains($0.id) }
-        let acceptedStops = stops.filter { !rejectedStops.contains($0) }
-
-        mapView.removeAnnotations(rejectedStops.map(StopAnnotation.init))
-        mapView.addAnnotations(acceptedStops.map(StopAnnotation.init))
-
+        mapView.addAnnotations(newAnnotations)
         notifyDelegatesStopsChanged()
     }
 
@@ -458,7 +475,7 @@ public class MapRegionManager: NSObject,
     }
 
     private func displaySearchResult(stop: Stop) {
-        let stopAnnotation = StopAnnotation(stop: stop)
+        let stopAnnotation = (try? StopAnnotation(stop: stop, database: persistence.database)) ?? StopAnnotation(stop: stop)
         mapView.addAnnotation(stopAnnotation)
         mapView.setCenterCoordinate(centerCoordinate: stop.location.coordinate, zoomLevel: 18, animated: true)
         mapView.selectAnnotation(stopAnnotation, animated: false)

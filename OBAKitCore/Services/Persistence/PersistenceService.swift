@@ -106,6 +106,15 @@ public actor PersistenceService {
         }
     }
 
+    public func processAPIResponse<T: Decodable & PersistableRecord>(_ apiResponse: RESTAPIResponse<[T]>) async throws {
+        try await processReferences(apiResponse)
+        try await database.write { db in
+            for item in apiResponse.list {
+                try item.insert(db, onConflict: .replace)
+            }
+        }
+    }
+
     public func processAPIResponseAndReturnObject<T: Decodable & PersistableRecord>(_ apiResponse: RESTAPIResponse<T>) async throws -> T {
 
         // References are processed first

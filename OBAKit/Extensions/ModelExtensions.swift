@@ -11,19 +11,6 @@ import Foundation
 import MapKit
 import OBAKitCore
 
-// MARK: - Bookmark/MKAnnotation
-
-extension Bookmark: MKAnnotation {
-    public var coordinate: CLLocationCoordinate2D {
-        fatalError("\(#function) unimplemented")
-//        stop.coordinate
-    }
-
-    public var title: String? {
-        name
-    }
-}
-
 // MARK: - Region/MKAnnotation
 
 extension Region: MKAnnotation {

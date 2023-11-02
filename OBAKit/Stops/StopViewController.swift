@@ -350,7 +350,7 @@ public class StopViewController: UIViewController,
 
             #if !targetEnvironment(simulator)
             // Display Google Maps app link, only if Google Maps is installed.
-            if let googleMapsURL = AppInterop.googleMapsWalkingDirectionsURL(coordinate: stop.coordinate),
+            if let googleMapsURL = AppInterop.googleMapsWalkingDirectionsURL(coordinate: stop.location.coordinate),
                self.application.canOpenURL(googleMapsURL) {
                 let googleMaps = UIAction(title: OBALoc("stops_controller.walking_directions_google", value: "Walking Directions (Google Maps)", comment: "Button that launches Google Maps with walking directions to this stop")) { [unowned self] _ in
                     self.application.open(googleMapsURL, options: [:], completionHandler: nil)
