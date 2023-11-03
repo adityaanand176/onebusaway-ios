@@ -59,7 +59,7 @@ final class PersistenceTests: OBAKitCorePersistenceTestCase {
         try await persistence.processAPIResponse(response)
 
         let _tripDetails = try await persistence.database.read { db in
-            try TripDetails.fetchOne(db, id: tripID)
+            try TripDetails.fetchAll(db, tripID: tripID).first
         }
 
         let tripDetails = try XCTUnwrap(_tripDetails)
@@ -74,15 +74,16 @@ final class PersistenceTests: OBAKitCorePersistenceTestCase {
     func testTripDetailRelations() async throws {
         let vehicleID = "1_1234"
         let tripID = "1_18196913"
+        let serviceDate = Date(timeIntervalSinceReferenceDate: 365324400)
 
         let data = try Fixtures.loadData(file: "trip_details_1_18196913.json")
         dataLoader.mock(URLString: "https://www.example.com/api/where/trip-details/\(tripID).json", with: data)
 
-        let response = try await restAPIService.getTrip(tripID: tripID, vehicleID: vehicleID, serviceDate: .now)
+        let response = try await restAPIService.getTrip(tripID: tripID, vehicleID: vehicleID, serviceDate: serviceDate)
         try await persistence.processAPIResponse(response)
 
         let _tripDetails = try await persistence.database.read { db in
-            try TripDetails.fetchOne(db, id: tripID)
+            try TripDetails.fetchOne(db, tripID: tripID, serviceDate: serviceDate)
         }
         let tripDetails = try XCTUnwrap(_tripDetails)
 

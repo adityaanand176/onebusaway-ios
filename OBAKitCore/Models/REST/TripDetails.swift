@@ -10,9 +10,14 @@
 import Foundation
 
 public struct TripDetails: Identifiable, Codable, Hashable {
+    public struct Identifier: Hashable {
+        let tripID: TripIdentifier
+        let serviceDate: Date?
+    }
+
     /// Equivalent to `tripID`.
-    public var id: String {
-        return self.tripID
+    public var id: Identifier {
+        return Identifier(tripID: self.tripID, serviceDate: self.serviceDate)
     }
 
     /// Captures information about a trip that uses frequency-based scheduling.

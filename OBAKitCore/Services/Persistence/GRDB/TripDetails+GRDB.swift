@@ -40,15 +40,26 @@ extension TripDetails: FetchableRecord, PersistableRecord, TableRecord, Database
         try database.create(table: databaseTableName) { table in
             table.column(Columns.tripID.name, .text)
                 .notNull()
-                .primaryKey()
                 .references(Trip.databaseTableName)
-            table.column(Columns.frequency.name, .jsonText)
             table.column(Columns.serviceDate.name, .datetime)
-                .notNull()
+            table.column(Columns.frequency.name, .jsonText)
             table.column(Columns.status.name, .jsonText)
             table.column(Columns.schedule.name, .jsonText)
                 .notNull()
             table.column(Columns.situationIDs.name, .jsonText)
+
+            table.primaryKey([Columns.tripID.name, Columns.serviceDate.name])
         }
+    }
+
+    public static func fetchOne(_ db: Database, tripID: TripIdentifier, serviceDate: Date) throws -> TripDetails? {
+        try fetchOne(db, key: [
+            Columns.tripID.name: tripID,
+            Columns.serviceDate.name: serviceDate
+        ])
+    }
+
+    public static func fetchAll(_ db: Database, tripID: TripIdentifier) throws -> [TripDetails] {
+        return try filter(sql: "\(Columns.tripID.name) = ?", arguments: [tripID]).fetchAll(db)
     }
 }
