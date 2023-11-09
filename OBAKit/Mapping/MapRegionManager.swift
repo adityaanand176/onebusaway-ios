@@ -17,8 +17,6 @@ import Combine
 // MARK: - MapRegionDelegate
 
 public protocol MapRegionDelegate: AnyObject {
-    func mapRegionManager(_ manager: MapRegionManager, stopsUpdated stops: [Stop])
-
     func mapRegionManager(_ manager: MapRegionManager, noSearchResults response: SearchResponse)
     func mapRegionManager(_ manager: MapRegionManager, disambiguateSearch response: SearchResponse)
     func mapRegionManager(_ manager: MapRegionManager, showSearchResult response: SearchResponse)
@@ -178,14 +176,14 @@ public class MapRegionManager: NSObject,
     }
 
     // MARK: - Observation
-    let persistence: PersistenceService
+//    let persistence: PersistenceService
     private var cancellables: Set<AnyCancellable> = []
 
     // MARK: - Init
 
     public init(application: Application) {
         self.application = application
-        self.persistence = PersistenceServiceRegion[application.currentRegion]
+//        self.persistence = PersistenceServiceRegion[application.currentRegion]
 
         application.userDefaults.register(defaults: [
             mapViewShowsTrafficKey: true,
@@ -211,7 +209,7 @@ public class MapRegionManager: NSObject,
 
         ValueObservation
             .tracking(Stop.fetchAll)
-            .shared(in: persistence.database)
+            .shared(in: application.persistence.database)
             .publisher()
             .assertNoFailure()
             .receive(on: DispatchQueue.main)
@@ -266,7 +264,7 @@ public class MapRegionManager: NSObject,
 
         do {
             let response = try await apiService.getStops(region: mapRegion)
-            try await persistence.processAPIResponse(response)
+            try await application.persistence.processAPIResponse(response)
         } catch {
             await self.application.displayError(error)
         }
@@ -315,11 +313,11 @@ public class MapRegionManager: NSObject,
         }
     }
 
-    private func notifyDelegatesStopsChanged() {
-        for delegate in delegates {
-            delegate.mapRegionManager(self, stopsUpdated: stops)
-        }
-    }
+//    private func notifyDelegatesStopsChanged() {
+//        for delegate in delegates {
+//            delegate.mapRegionManager(self, stopsUpdated: stops)
+//        }
+//    }
 
     /// Notifies delegates that data loading has started.
     /// In UI terms, this should mean that a loading indicator is shown in the app.
@@ -357,7 +355,7 @@ public class MapRegionManager: NSObject,
         }
     }
 
-    public private(set) var stops = [Stop]() {
+    @Published public private(set) var stops: [Stop] = [] {
         didSet {
             addNewStops()
         }
@@ -374,12 +372,11 @@ public class MapRegionManager: NSObject,
             return try? StopAnnotation(
                 stop: $0,
                 isBookmarked: bookmarkedStops.contains($0.id),
-                database: persistence.database
+                database: application.persistence.database
             )
         }
 
         mapView.addAnnotations(newAnnotations)
-        notifyDelegatesStopsChanged()
     }
 
     // MARK: - Map Status Overlay
@@ -475,7 +472,7 @@ public class MapRegionManager: NSObject,
     }
 
     private func displaySearchResult(stop: Stop) {
-        let stopAnnotation = (try? StopAnnotation(stop: stop, database: persistence.database)) ?? StopAnnotation(stop: stop)
+        let stopAnnotation = (try? StopAnnotation(stop: stop, database: application.persistence.database)) ?? StopAnnotation(stop: stop)
         mapView.addAnnotation(stopAnnotation)
         mapView.setCenterCoordinate(centerCoordinate: stop.location.coordinate, zoomLevel: 18, animated: true)
         mapView.selectAnnotation(stopAnnotation, animated: false)
@@ -544,7 +541,7 @@ public class MapRegionManager: NSObject,
         updateZoomWarningOverlay(mapHeight: mapView.visibleMapRect.height)
 
         guard mapView.visibleMapRect.height <= MapRegionManager.requiredHeightToShowStops else {
-            mapView.removeAnnotations(type: StopAnnotation.self)
+//            mapView.removeAnnotations(type: StopAnnotation.self)
             return
         }
 

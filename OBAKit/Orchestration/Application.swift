@@ -72,6 +72,11 @@ public class Application: CoreApplication, PushServiceDelegate {
     @MainActor
     lazy var viewRouter = ViewRouter(application: self)
 
+    /// Persistence service for the ``currentRegion``.
+    var persistence: PersistenceService {
+        PersistenceServiceRegion[currentRegion]
+    }
+
     /// Responsible for creating stop 'badges' for the map.
     lazy var stopIconFactory = StopIconFactory(iconSize: ThemeMetrics.defaultMapAnnotationSize, themeColors: ThemeColors.shared)
 

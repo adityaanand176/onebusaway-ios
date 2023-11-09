@@ -158,11 +158,11 @@ class StopAnnotationView: MKAnnotationView {
 
     override var accessibilityLabel: String? {
         get {
-            guard let stop = annotation as? StopAnnotation else {
+            guard let stop = annotation as? Stop else {
                 return nil
             }
 
-            return Formatters.formattedAccessibilityLabel(stop: stop.stop)
+            return Formatters.formattedAccessibilityLabel(stop: stop)
         }
 
         set {

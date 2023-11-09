@@ -8,6 +8,7 @@
 //
 
 import UIKit
+import GRDB
 import OBAKitCore
 import FloatingPanel
 
@@ -195,10 +196,9 @@ class TripFloatingPanelController: UIViewController,
 
         var sections: [OBAListViewSection] = []
 
-        print("No situations will appear!")
-//        if tripDetails.serviceAlerts.count > 0 {
-//            sections.append(serviceAlertsListSection(tripDetails.serviceAlerts))
-//        }
+        if !tripDetails.situationIDs.isEmpty {
+            sections.append(serviceAlertsListSection(tripDetails.situationIDs))
+        }
 
         sections.append(
             tripStopListSection(
@@ -255,13 +255,20 @@ class TripFloatingPanelController: UIViewController,
         highlightStopInList(stopID: tripStop.stopID)
     }
 
-    private func serviceAlertsListSection(_ alerts: [ServiceAlert]) -> OBAListViewSection {
-        let action: OBAListViewAction<TransitAlertDataListViewModel> = { [unowned self] viewModel in
-            self.application.viewRouter.navigateTo(alert: viewModel.transitAlert, from: self)
+    private func serviceAlertsListSection(_ alerts: [Situation.ID]) -> OBAListViewSection {
+        let contents: [AnyOBAListViewItem] = alerts.map { alert in
+            OBAListRowView.SubtitleViewModel(image: nil, title: alert, subtitle: nil, accessoryType: .disclosureIndicator) { [weak self] model in
+                guard let self, let id = model.title.stringValue else { return }
+                self.application.viewRouter.navigate(toSituationID: id, from: self)
+            }.typeErased
         }
 
-        let contents = alerts.map { TransitAlertDataListViewModel($0, forLocale: .current, onSelectAction: action) }
-
+//        let action: OBAListViewAction<TransitAlertDataListViewModel> = { [unowned self] viewModel in
+//            self.application.viewRouter.navigateTo(alert: viewModel.transitAlert, from: self)
+//        }
+//
+//        let contents = alerts.map { TransitAlertDataListViewModel($0, forLocale: .current, onSelectAction: action) }
+//
         // If there is more than one service alert, include the count of service alerts in the title.
         let title: String
         if contents.count == 1 {

@@ -10,6 +10,7 @@
 import UIKit
 import FloatingPanel
 import OBAKitCore
+import Combine
 
 protocol MapPanelDelegate: NSObjectProtocol {
     func mapPanelController(_ controller: MapFloatingPanelController, didSelectStop stopID: Stop.ID)
@@ -44,7 +45,7 @@ class MapFloatingPanelController: VisualEffectViewController,
         application.alertsStore.recentHighSeverityAlerts
     }
 
-    private(set) var stops = [Stop]() {
+    @Published private(set) var stops = [Stop]() {
         didSet {
             nearbyStopsListViewController.updateList()
         }
@@ -54,6 +55,8 @@ class MapFloatingPanelController: VisualEffectViewController,
     private var searchListViewController: SearchListViewController!
     var searchBarText: String = ""
 
+    private var cancelables: Set<AnyCancellable> = []
+
     // MARK: - Init/Deinit
     init(application: Application, mapRegionManager: MapRegionManager, delegate: MapPanelDelegate) {
         self.application = application
@@ -62,12 +65,19 @@ class MapFloatingPanelController: VisualEffectViewController,
 
         super.init(nibName: nil, bundle: nil)
 
+        self.mapRegionManager.$stops
+            .debounce(for: .seconds(1), scheduler: DispatchQueue.main)
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.stops, on: self)
+            .store(in: &cancelables)
+
         self.mapRegionManager.addDelegate(self)
         self.application.regionsService.addDelegate(self)
         self.application.alertsStore.addDelegate(self)
     }
 
     deinit {
+        cancelables.forEach { $0.cancel() }
         mapRegionManager.removeDelegate(self)
         application.regionsService.removeDelegate(self)
         application.alertsStore.removeDelegate(self)
@@ -292,10 +302,6 @@ extension MapFloatingPanelController: MapRegionDelegate {
 
     public func mapRegionManager(_ manager: MapRegionManager, showSearchResult response: SearchResponse) {
         exitSearchMode()
-    }
-
-    public func mapRegionManager(_ manager: MapRegionManager, stopsUpdated stops: [Stop]) {
-        self.stops = stops
     }
 
     // MARK: - RegionsServiceDelegate

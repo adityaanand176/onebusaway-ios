@@ -11,10 +11,12 @@ import UIKit
 import MapKit
 import FloatingPanel
 import OBAKitCore
+import Combine
 
 class TripViewController: UIViewController,
     AppContext,
     FloatingPanelControllerDelegate,
+    TripDetailsDelegate,
     Idleable,
     MKMapViewDelegate,
     Previewable {
@@ -47,6 +49,11 @@ class TripViewController: UIViewController,
         enableIdleTimer()
     }
 
+    // MARK: - State
+    @Published var tripDetails: TripDetailsViewModel?
+
+    private var cancellables: Set<AnyCancellable> = []
+
     // MARK: - UIViewController
 
     lazy var reloadButton: UIBarButtonItem = {
@@ -59,6 +66,9 @@ class TripViewController: UIViewController,
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        tripDetailsController.delegate = self
+        tripDetailsController.collectionView.backgroundColor = nil
 
         // Don't show user location if accuracy is reduced to avoid user confusion.
         if #available(iOS 14, *) {
@@ -86,6 +96,26 @@ class TripViewController: UIViewController,
             appearance.configureWithDefaultBackground()
             navigationItem.scrollEdgeAppearance = appearance
         }
+
+        $tripDetails
+            .assign(to: &tripDetailsController.$tripDetailsViewModel)
+
+        $tripDetails
+            .sink { viewModel in
+                guard let viewModel else { return }
+
+                let annotations = viewModel.stops.values
+                    .compactMap { stop -> StopAnnotation? in
+                        if stop.location.coordinate.isNullIsland {
+                            return nil
+                        } else {
+                            return StopAnnotation(stop: stop)
+                        }
+                    }
+
+                self.mapView.updateAnnotations(with: annotations)
+            }
+            .store(in: &cancellables)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -94,9 +124,7 @@ class TripViewController: UIViewController,
         disableIdleTimer()
         beginUserActivity()
 
-        if #available(iOS 15, *) {
-            setContentScrollView(tripDetailsController.listView, for: .bottom)
-        }
+        setContentScrollView(tripDetailsController.contentScrollView(for: .bottom), for: .bottom)
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -145,8 +173,6 @@ class TripViewController: UIViewController,
             floatingPanel.addPanel(toParent: self)
             floatingPanel.move(to: .half, animated: true)
         }
-
-        tripDetailsController.listView.applyData()
     }
 
     // MARK: - Idle Timer
@@ -188,24 +214,36 @@ class TripViewController: UIViewController,
 
     var showTripDetails: Bool = false {
         didSet {
-            guard oldValue != self.showTripDetails else { return }
-            UIView.animate(withDuration: 0.1) {
-                self.tripDetailsController.setListVisibility(isVisible: self.showTripDetails)
-            }
+//            guard oldValue != self.showTripDetails else { return }
+//            UIView.animate(withDuration: 0.1) {
+//                self.tripDetailsController.setListVisibility(isVisible: self.showTripDetails)
+//            }
         }
     }
 
-    private lazy var tripDetailsController = TripFloatingPanelController(
-        application: application,
-        tripConvertible: tripConvertible,
-        parentTripViewController: self
-    )
+    // MARK: TripDetails
+    private lazy var tripDetailsController = TripDetailsViewController()
+
+    func tripDetailsViewController(_ tripDetailsViewController: TripDetailsViewController, didSelectStop stopID: StopID) {
+        application.viewRouter.navigateTo(stopID: stopID, from: self)
+    }
+
+    func tripDetailsViewController(_ tripDetailsViewController: TripDetailsViewController, didSelectTrip tripID: TripIdentifier) {
+        print("no-op")
+    }
+
+    // MARK: Drawer
 
     /// The floating panel controller, which displays a drawer at the bottom of the map.
     private lazy var floatingPanel: OBAFloatingPanelController = {
         let panel = OBAFloatingPanelController(application, delegate: self)
         panel.isRemovalInteractionEnabled = false
-        panel.surfaceView.appearance.cornerRadius = ThemeMetrics.cornerRadius
+        
+        let appearance = SurfaceAppearance()
+        appearance.backgroundColor = .clear
+        appearance.cornerRadius = ThemeMetrics.cornerRadius
+        panel.surfaceView.appearance = appearance
+
         panel.contentMode = .fitToBounds
 
         // Set a content view controller.
@@ -232,7 +270,7 @@ class TripViewController: UIViewController,
 
     func floatingPanelDidChangeState(_ fpc: FloatingPanelController) {
         showTripDetails = fpc.state != .tip
-        tripDetailsController.configureView(for: fpc.state)
+//        tripDetailsController.configureView(for: fpc.state)
 
         if fpc.state != .full {
             if traitCollection.horizontalSizeClass == .regular {
@@ -250,12 +288,12 @@ class TripViewController: UIViewController,
         }
     }
 
-    func showStopOnMap(_ tripStop: TripStopViewModel) {
-        self.floatingPanel.move(to: .half, animated: true) {
-            self.skipNextStopTimeHighlight = true
-            self.selectedStopTime = tripStop.stopTime
-        }
-    }
+//    func showStopOnMap(_ tripStop: TripStopViewModel) {
+//        self.floatingPanel.move(to: .half, animated: true) {
+//            self.skipNextStopTimeHighlight = true
+//            self.selectedStopTime = tripStop.stopTime
+//        }
+//    }
 
     func updateVoiceover() {
         if UIAccessibility.isVoiceOverRunning {
@@ -303,7 +341,8 @@ class TripViewController: UIViewController,
 
         await MainActor.run {
             self.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
-            self.tripDetailsController.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
+            self.tripDetailsController.currentStop = arrivalDeparture.stopID
+//            self.tripDetailsController.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
         }
     }
 
@@ -313,31 +352,32 @@ class TripViewController: UIViewController,
         }
 
         // Let the user still look at data if there was already details from a previous request.
-        self.floatingPanel.surfaceView.grabberHandle.isHidden = self.tripDetailsController.tripDetails == nil
+//        self.floatingPanel.surfaceView.grabberHandle.isHidden = self.tripDetailsController.tripDetails == nil
 
         let response = try await apiService.getTrip(tripID: tripConvertible.tripID, vehicleID: tripConvertible.vehicleID, serviceDate: tripConvertible.serviceDate)
         let trip = response.entry
-        try await PersistenceServiceRegion[application.currentRegion].processReferences(response)
+        try await application.persistence.processAPIResponse(response)
 
         await MainActor.run {
-            self.tripDetailsController.tripDetails = trip
+            self.tripDetails = try? TripDetailsViewModel.fetch(self.application.persistence.database, tripDetails: trip)
+//            self.tripDetailsController.tripDetails = trip
 
 //            self.mapView.updateAnnotations(with: trip.stopTimes)
 
             self.currentTripStatus = trip.status
 
             // In cases where TripStatus.coordinates is (0,0), we don't want to show it.
-            var annotationsToShow = self.mapView.annotations.filter { !($0 is MKUserLocation) }
-            annotationsToShow.removeAll(where: { $0.coordinate.isNullIsland })
-
-            if !self.mapView.hasBeenTouched {
-                self.mapView.showAnnotations(annotationsToShow, animated: true)
-            }
-
-            if let arrivalDeparture = self.tripConvertible.arrivalDeparture {
-                let userDestinationStopTime = trip.schedule.stopTimes.filter { $0.stopID == arrivalDeparture.stopID }.first
-                self.selectedStopTime = userDestinationStopTime
-            }
+//            var annotationsToShow = self.mapView.annotations.filter { !($0 is MKUserLocation) }
+//            annotationsToShow.removeAll(where: { $0.coordinate.isNullIsland })
+//
+//            if !self.mapView.hasBeenTouched {
+//                self.mapView.showAnnotations(annotationsToShow, animated: true)
+//            }
+//
+//            if let arrivalDeparture = self.tripConvertible.arrivalDeparture {
+//                let userDestinationStopTime = trip.schedule.stopTimes.filter { $0.stopID == arrivalDeparture.stopID }.first
+//                self.selectedStopTime = userDestinationStopTime
+//            }
 
             self.floatingPanel.surfaceView.grabberHandle.isHidden = false
         }
@@ -356,7 +396,7 @@ class TripViewController: UIViewController,
         }
 
         let tripID = tripConvertible.tripID
-        let trip = try await PersistenceServiceRegion[application.currentRegion].database.read { [tripID] db in
+        let trip = try await application.persistence.database.read { [tripID] db in
             try Trip.fetchOne(db, id: tripID)
         }
 
@@ -449,7 +489,7 @@ class TripViewController: UIViewController,
         guard !skipNextStopTimeHighlight else { return }
 
         func mapViewAnnotationSelectionComplete() {
-            self.tripDetailsController.highlightStopInList(stopID: stopTime.stopID)
+//            self.tripDetailsController.highlightStopInList(stopID: stopTime.stopID)
         }
 
         if self.mapView.hasBeenTouched {
@@ -522,20 +562,23 @@ class TripViewController: UIViewController,
         else if let annotationView = annotationView as? PulsingAnnotationView {
             userLocationAnnotationView = annotationView
         }
-        else if let view = annotationView as? MinimalStopAnnotationView, let arrivalDeparture = tripConvertible.arrivalDeparture {
-            view.selectedArrivalDeparture = arrivalDeparture
-
-            if let stopTime = annotation as? TripStopTime {
-                view.rightCalloutAccessoryView = UIButton.chevronButton
-
-                let calloutLabel = UILabel.autolayoutNew()
-                calloutLabel.textColor = ThemeColors.shared.secondaryLabel
-//                calloutLabel.text = application.formatters.timeFormatter.string(from: stopTime.schedule.arrivalDate)
-                view.detailCalloutAccessoryView = calloutLabel
-            }
-
-            view.canShowCallout = true
+        else if let annotationView = annotationView as? MinimalStopAnnotationView {
+            annotationView.annotationSize = 32
         }
+//        else if let view = annotationView as? MinimalStopAnnotationView, let arrivalDeparture = tripConvertible.arrivalDeparture {
+//            view.selectedArrivalDeparture = arrivalDeparture
+//
+//            if let stopTime = annotation as? TripStopTime {
+//                view.rightCalloutAccessoryView = UIButton.chevronButton
+//
+//                let calloutLabel = UILabel.autolayoutNew()
+//                calloutLabel.textColor = ThemeColors.shared.secondaryLabel
+////                calloutLabel.text = application.formatters.timeFormatter.string(from: stopTime.schedule.arrivalDate)
+//                view.detailCalloutAccessoryView = calloutLabel
+//            }
+//
+//            view.canShowCallout = true
+//        }
 
         return annotationView
     }
@@ -545,6 +588,7 @@ class TripViewController: UIViewController,
         case is VehicleAnnotation: return MKMapView.reuseIdentifier(for: PulsingVehicleAnnotationView.self)
         case is MKUserLocation: return MKMapView.reuseIdentifier(for: PulsingAnnotationView.self)
         case is TripStopTimeAnnotation: return MKMapView.reuseIdentifier(for: MinimalStopAnnotationView.self)
+        case is StopAnnotation: return MKMapView.reuseIdentifier(for: StopAnnotationView.self)
         default: return nil
         }
     }

@@ -40,13 +40,13 @@ class MinimalStopAnnotationView: MKAnnotationView {
         super.prepareForDisplay()
 
         guard
-            let stop = annotation as? Stop,
+            let stop = annotation as? StopAnnotation,
             let selectedArrivalDeparture = selectedArrivalDeparture
         else {
             return
         }
 
-        if selectedArrivalDeparture.stopID == stop.id {
+        if selectedArrivalDeparture.stopID == stop.stop.id {
             shapeLayer.strokeColor = highlightedStrokeColor.cgColor
         }
     }

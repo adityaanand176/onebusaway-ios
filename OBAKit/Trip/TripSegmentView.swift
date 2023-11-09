@@ -15,8 +15,23 @@ import OBAKitCore
 /// Depicts if the associated stop is the user's destination or the current location of the transit vehicle.
 class TripSegmentView: UIView {
 
-    private let lineWidth: CGFloat = 1.0
-    private let circleRadius: CGFloat = 30.0
+    enum State: CaseIterable {
+        case origin
+        case ellipsis
+        case stop
+        case terminal
+        case nextTrip
+        case previousTrip
+    }
+
+    var state: State = .stop {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+
+    private let lineWidth: CGFloat = 2.0
+    private let circleRadius: CGFloat = 10
     private var halfRadius: CGFloat {
         circleRadius / 2.0
     }
@@ -37,27 +52,6 @@ class TripSegmentView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    var image: UIImage? {
-        didSet {
-            setNeedsDisplay()
-        }
-    }
-
-    var routeType: Route.RouteType = .unknown
-
-    private var isUserDestination: Bool = false
-    private var isCurrentVehicleLocation: Bool = false
-
-    public func setDestinationStatus(user: Bool, vehicle: Bool) {
-        isUserDestination = user
-        isCurrentVehicleLocation = vehicle
-        setAccessibilityLabel()
-        setNeedsDisplay()
-    }
-
-    /// If the trip segment being represented is for an adjacent trip (i.e. either the previous or next trip), this should be non-nil.
-    var adjacentTripOrder: AdjacentTripOrder?
-
     override public var intrinsicContentSize: CGSize {
         CGSize(width: circleRadius + (2.0 * lineWidth), height: UIView.noIntrinsicMetric)
     }
@@ -71,91 +65,106 @@ class TripSegmentView: UIView {
         lineColor.setFill()
         lineColor.setStroke()
 
-        switch adjacentTripOrder {
-        case .next:
+        switch state {
+        case .nextTrip:
             drawNextTripSegment(rect, context: ctx)
-        case .previous:
+        case .previousTrip:
             drawPreviousTripSegment(rect, context: ctx)
-        default:
-            drawRegularTripSegment(rect, context: ctx)
+        case .origin:
+            drawOrigin(rect, context: ctx)
+        case .ellipsis:
+            drawEllipsis(rect, context: ctx)
+        case .stop:
+            drawStop(rect, context: ctx)
+        case .terminal:
+            drawTerminal(rect, context: ctx)
         }
 
         ctx?.restoreGState()
     }
 
+    private func drawGradient(_ colors: [UIColor], rect: CGRect, context: CGContext?) {
+        let startPoint = CGPoint(x: rect.midX, y: rect.minY)
+        let endPoint = CGPoint(x: rect.midX, y: rect.maxY)
+
+        let path = UIBezierPath()
+        path.lineWidth = lineWidth
+        path.move(to: startPoint)
+        path.addLine(to: endPoint)
+
+        context?.addLines(between: [startPoint, endPoint])
+        context?.setLineWidth(lineWidth)
+        context?.replacePathWithStrokedPath()
+
+        path.addClip()
+        let gradient = CGGradient(colorsSpace: nil, colors: colors.map(\.cgColor) as CFArray, locations: nil)!
+        context?.drawLinearGradient(gradient, start: startPoint, end: endPoint, options: [])
+    }
+
     private func drawNextTripSegment(_ rect: CGRect, context: CGContext?) {
-        let topLine = UIBezierPath(rect: CGRect(origin: CGPoint(x: rect.midX - (lineWidth / 2.0), y: rect.minY), size: CGSize(width: lineWidth, height: rect.midY)))
-        topLine.fill()
+        drawGradient([lineColor, lineColor.withAlphaComponent(0)], rect: rect, context: context)
     }
 
     private func drawPreviousTripSegment(_ rect: CGRect, context: CGContext?) {
-        let bottomLine = UIBezierPath(rect: CGRect(origin: CGPoint(x: rect.midX - (lineWidth / 2.0), y: rect.midY), size: CGSize(width: lineWidth, height: rect.midY)))
-        bottomLine.fill()
+        drawGradient([lineColor.withAlphaComponent(0), lineColor], rect: rect, context: context)
     }
 
-    private func drawRegularTripSegment(_ rect: CGRect, context: CGContext?) {
-        let topLine = UIBezierPath(rect: CGRect(origin: CGPoint(x: rect.midX - (lineWidth / 2.0), y: rect.minY), size: CGSize(width: lineWidth, height: rect.midY - halfRadius)))
-        topLine.fill()
+    private func drawOrigin(_ rect: CGRect, context: CGContext?) {
+        let circle = CGRect(x: rect.midX - halfRadius, y: rect.minY + halfRadius, width: circleRadius, height: circleRadius)
+        let circlePath = UIBezierPath(ovalIn: circle)
+        circlePath.lineWidth = lineWidth
+        circlePath.fill()
 
-        let bezierFrame = CGRect(origin: CGPoint(x: rect.midX - halfRadius, y: rect.midY - halfRadius), size: CGSize(width: circleRadius, height: circleRadius))
-
-        let bezierPath = UIBezierPath(roundedRect: bezierFrame, cornerRadius: ThemeMetrics.compactCornerRadius)
-        bezierPath.lineWidth = lineWidth
-
-        if isCurrentVehicleLocation {
-            drawRouteType(routeType, frame: bezierFrame)
-        }
-
-        if isUserDestination {
-            drawUserDestinationBadge(frame: bezierFrame, context: context)
-        }
-
-        bezierPath.stroke()
-
-        let bottomLine = UIBezierPath(rect: CGRect(origin: CGPoint(x: rect.midX - (lineWidth / 2.0), y: rect.midY + halfRadius), size: CGSize(width: lineWidth, height: rect.midY - halfRadius)))
-        bottomLine.fill()
+        let topLine = UIBezierPath()
+        topLine.lineWidth = lineWidth
+        topLine.move(to: CGPoint(x: rect.midX, y: circle.minY))
+        topLine.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        topLine.stroke()
     }
 
-    private func drawUserDestinationBadge(frame: CGRect, context: CGContext?) {
-        context?.saveGState()
+    private func drawEllipsis(_ rect: CGRect, context: CGContext?) {
+        let path = UIBezierPath()
+        path.setLineDash([lineWidth, lineWidth], count: 2, phase: 0)
+        path.lineWidth = lineWidth
 
-        let miniFrame = CGRect(x: frame.midX - lineWidth, y: frame.midY - lineWidth, width: halfRadius + lineWidth, height: halfRadius + lineWidth)
-
-        lineColor.setFill()
-        ThemeColors.shared.systemBackground.setStroke()
-
-        let corners = UIRectCorner.topLeft.union(.bottomRight)
-        let cornerRadii = CGSize(width: ThemeMetrics.compactCornerRadius, height: ThemeMetrics.compactCornerRadius)
-        let bezierPath = UIBezierPath(roundedRect: miniFrame, byRoundingCorners: corners, cornerRadii: cornerRadii)
-        bezierPath.lineWidth = lineWidth
-        bezierPath.fill()
-        bezierPath.stroke()
-
-        let icon = Icons.walkTransport.tinted(color: .white)
-        icon.draw(in: miniFrame.insetBy(dx: 2.0, dy: 2.0))
-
-        context?.restoreGState()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.stroke()
     }
 
-    private func drawRouteType(_ routeType: Route.RouteType, frame: CGRect) {
-        let image = Icons.transportIcon(from: routeType).tinted(color: imageColor)
-        image.draw(in: frame.insetBy(dx: imageInset, dy: imageInset))
+    private func drawTerminal(_ rect: CGRect, context: CGContext?) {
+        let topLine = UIBezierPath()
+        topLine.lineWidth = lineWidth
+        topLine.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        topLine.addLine(to: CGPoint(x: rect.midX, y: rect.minY + halfRadius))
+        topLine.stroke()
+
+        let circle = CGRect(x: rect.midX - halfRadius, y: rect.minY + halfRadius, width: circleRadius, height: circleRadius)
+        let circlePath = UIBezierPath(ovalIn: circle)
+        circlePath.lineWidth = lineWidth
+        circlePath.fill()
     }
 
-    private func setAccessibilityLabel() {
-        var flags: [String] = []
+    private func drawStop(_ rect: CGRect, context: CGContext?) {
+        let circleMinY = rect.minY + halfRadius
+        let circleMaxY = rect.minY + halfRadius + circleRadius
 
-        if isUserDestination {
-            flags.append(OBALoc("trip_stop.user_destination.accessibility_label", value: "Your destination", comment: "Voiceover text explaining that this stop is the user's destination"))
-        }
+        let topLine = UIBezierPath()
+        topLine.lineWidth = lineWidth
+        topLine.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        topLine.addLine(to: CGPoint(x: rect.midX, y: circleMinY))
+        topLine.stroke()
 
-        if isCurrentVehicleLocation {
-            flags.append(OBALoc("trip_stop.vehicle_location.accessibility_label", value: "Vehicle is here", comment: "Voiceover text explaining that the vehicle is currently at this stop"))
-        }
+        let circle = CGRect(x: rect.midX - halfRadius, y: circleMinY, width: circleRadius, height: circleRadius)
+        let circlePath = UIBezierPath(ovalIn: circle)
+        circlePath.lineWidth = lineWidth
+        circlePath.stroke()
 
-        let joined = flags.joined(separator: ", ")
-        accessibilityLabel = joined.isEmpty ? nil : joined
-        isAccessibilityElement = !joined.isEmpty
+        let bottomLine = UIBezierPath()
+        topLine.lineWidth = lineWidth
+        topLine.move(to: CGPoint(x: rect.midX, y: circleMaxY))
+        topLine.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+        topLine.stroke()
     }
 }
 
@@ -167,28 +176,27 @@ struct TripSegmentView_Previews: PreviewProvider {
     private static let width: CGFloat = 64
     private static let height: CGFloat = 44
 
-    private static func tripSegmentView(user: Bool, vehicle: Bool) -> TripSegmentView {
-        let view = TripSegmentView()
-        view.setDestinationStatus(user: user, vehicle: vehicle)
-        return view
-    }
+    private static func tripSegmentView(_ state: TripSegmentView.State) -> some View {
+        HStack(alignment: .top) {
+            UIViewPreview {
+                let view = TripSegmentView()
+                view.state = state
+                return view
+            }.frame(width: width, height: height, alignment: .center)
 
-    private static func preview(for view: TripSegmentView, _ description: String) -> some View {
-        VStack {
-            UIViewPreview { view }
-                .frame(width: width, height: height, alignment: .center)
-            Text(description)
-            Text(view.accessibilityLabel ?? "No VoiceOver label")
-                .font(.caption)
-        }.fixedSize()
+            Text("\(String(describing: state))")
+        }
     }
 
     static var previews: some View {
-        HStack {
-            preview(for: tripSegmentView(user: false, vehicle: false), "Standard")
-            preview(for: tripSegmentView(user: true, vehicle: false), "User")
-            preview(for: tripSegmentView(user: false, vehicle: true), "Vehicle")
-            preview(for: tripSegmentView(user: true, vehicle: true), "User & Vehicle")
+        VStack(alignment: .leading, spacing: 0) {
+            tripSegmentView(.origin)
+            tripSegmentView(.stop)
+            tripSegmentView(.ellipsis)
+            tripSegmentView(.stop)
+            tripSegmentView(.nextTrip)
+            tripSegmentView(.previousTrip)
+            tripSegmentView(.terminal)
         }
         .previewLayout(.sizeThatFits)
         .padding()
