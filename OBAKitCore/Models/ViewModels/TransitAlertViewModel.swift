@@ -20,3 +20,18 @@ public protocol TransitAlertViewModel {
 extension AgencyAlert: TransitAlertViewModel {
     // nop. already conforms to transitalertdata.
 }
+
+extension ServiceAlert: TransitAlertViewModel {
+    public func title(forLocale locale: Locale) -> String? {
+        summary?.value
+    }
+    
+    public func body(forLocale locale: Locale) -> String? {
+        description?.value
+    }
+    
+    public func url(forLocale locale: Locale) -> URL? {
+        guard let url else { return nil }
+        return URL(string: url.value)
+    }
+}

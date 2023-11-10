@@ -61,17 +61,7 @@ class SearchInteractor: NSObject {
     }
 
     private func buildRecentStopsSection(searchText: String) -> OBAListViewSection? {
-        let recentStops = userDataStore.findRecentStops(matching: searchText).map { stop in
-            OBAListRowView.DefaultViewModel(title: stop.name, accessoryType: .disclosureIndicator) { _ in
-                self.delegate?.searchInteractor(self, showStop: stop)
-            }
-        }
-
-        guard recentStops.count > 0 else {
-            return nil
-        }
-
-        return listSection(for: .recentStops, title: Strings.recentStops, contents: recentStops)
+        return nil
     }
 
     private func buildBookmarksSection(searchText: String) -> OBAListViewSection? {

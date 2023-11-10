@@ -95,7 +95,7 @@ public class StopViewController: UIViewController,
 
     private func stopUpdated(_ stop: Stop) {
         if let region = application.currentRegion {
-            application.userDataStore.addRecentStop(stop, region: region)
+//            application.userDataStore.addRecentStop(stop, region: region)
         }
         application.analytics?.reportStopViewed?(name: stop.name, id: stop.id, stopDistance: analyticsDistanceToStop)
     }

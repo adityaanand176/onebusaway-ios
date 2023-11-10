@@ -63,7 +63,7 @@ public class RecentStopsViewController: UIViewController,
 
         let alertController = UIAlertController.deletionAlert(title: title) { [weak self] _ in
             guard let self = self else { return }
-            self.application.userDataStore.deleteAllRecentStops()
+//            self.application.userDataStore.deleteAllRecentStops()
             self.listView.applyData(animated: true)
         }
 
