@@ -28,9 +28,8 @@ public class VisualEffectViewController: UIViewController {
 
     /// Add subviews to this visual effect view.
     public let visualEffectView: UIVisualEffectView = {
-        let view = UIVisualEffectView(effect: UIBlurEffect(style: .regular))
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = UIColor.white.withAlphaComponent(0.50)
 
         return view
     }()

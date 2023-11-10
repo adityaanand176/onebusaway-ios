@@ -50,6 +50,7 @@ final class TripDetailsViewController: UICollectionViewController {
 
     init() {
         var configuration = UICollectionLayoutListConfiguration(appearance: .insetGrouped)
+        configuration.backgroundColor = .clear
         configuration.showsSeparators = false
 
         let layout = UICollectionViewCompositionalLayout.list(using: configuration)

@@ -67,8 +67,8 @@ class TripViewController: UIViewController,
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        tripDetailsController.delegate = self
-        tripDetailsController.collectionView.backgroundColor = nil
+        floatingPanelController.tripDetailsViewController.delegate = self
+        floatingPanelController.tripDetailsViewController.collectionView.backgroundColor = nil
 
         // Don't show user location if accuracy is reduced to avoid user confusion.
         if #available(iOS 14, *) {
@@ -98,7 +98,7 @@ class TripViewController: UIViewController,
         }
 
         $tripDetails
-            .assign(to: &tripDetailsController.$tripDetailsViewModel)
+            .assign(to: &floatingPanelController.tripDetailsViewController.$tripDetailsViewModel)
 
         $tripDetails
             .sink { viewModel in
@@ -124,7 +124,7 @@ class TripViewController: UIViewController,
         disableIdleTimer()
         beginUserActivity()
 
-        setContentScrollView(tripDetailsController.contentScrollView(for: .bottom), for: .bottom)
+        setContentScrollView(floatingPanelController.contentScrollView(for: .bottom))
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -222,7 +222,7 @@ class TripViewController: UIViewController,
     }
 
     // MARK: TripDetails
-    private lazy var tripDetailsController = TripDetailsViewController()
+    private lazy var floatingPanelController = _TripFloatingPanelController()
 
     func tripDetailsViewController(_ tripDetailsViewController: TripDetailsViewController, didSelectStop stopID: StopID) {
         application.viewRouter.navigateTo(stopID: stopID, from: self)
@@ -247,7 +247,7 @@ class TripViewController: UIViewController,
         panel.contentMode = .fitToBounds
 
         // Set a content view controller.
-        panel.set(contentViewController: tripDetailsController)
+        panel.set(contentViewController: floatingPanelController)
 
         return panel
     }()
@@ -341,7 +341,7 @@ class TripViewController: UIViewController,
 
         await MainActor.run {
             self.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
-            self.tripDetailsController.currentStop = arrivalDeparture.stopID
+//            self.tripDetailsController.currentStop = arrivalDeparture.stopID
 //            self.tripDetailsController.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
         }
     }
