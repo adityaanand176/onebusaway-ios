@@ -222,7 +222,7 @@ class TripViewController: UIViewController,
     }
 
     // MARK: TripDetails
-    private lazy var floatingPanelController = _TripFloatingPanelController()
+    private lazy var floatingPanelController = TripFloatingPanelController()
 
     func tripDetailsViewController(_ tripDetailsViewController: TripDetailsViewController, didSelectStop stopID: StopID) {
         application.viewRouter.navigateTo(stopID: stopID, from: self)
