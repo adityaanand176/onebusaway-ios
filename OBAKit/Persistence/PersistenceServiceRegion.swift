@@ -17,6 +17,7 @@ struct PersistenceServiceRegion {
             return service
         }
 
+        // swiftlint:disable:next force_try
         let _service = try! PersistenceService(PersistenceService.Configuration(regionIdentifier: region, databaseLocation: .memory))
         serviceForRegion[region] = _service
         return _service

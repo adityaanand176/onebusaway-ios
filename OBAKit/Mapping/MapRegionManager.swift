@@ -176,14 +176,12 @@ public class MapRegionManager: NSObject,
     }
 
     // MARK: - Observation
-//    let persistence: PersistenceService
     private var cancellables: Set<AnyCancellable> = []
 
     // MARK: - Init
 
     public init(application: Application) {
         self.application = application
-//        self.persistence = PersistenceServiceRegion[application.currentRegion]
 
         application.userDefaults.register(defaults: [
             mapViewShowsTrafficKey: true,

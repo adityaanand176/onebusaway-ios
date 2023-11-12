@@ -341,7 +341,7 @@ class TripViewController: UIViewController,
 
         await MainActor.run {
             self.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
-//            self.tripDetailsController.currentStop = arrivalDeparture.stopID
+            self.floatingPanelController.tripDetailsViewController.currentStop = arrivalDeparture.stopID
 //            self.tripDetailsController.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
         }
     }

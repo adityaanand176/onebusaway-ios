@@ -37,6 +37,7 @@ final class TripDetailsViewController: UICollectionViewController {
     }
 
     // MARK: - State
+    var isHidingPreviousStops: Bool = true
     @Published var currentStop: Stop.ID?
     @Published var tripDetailsViewModel: TripDetailsViewModel? = nil
 
@@ -56,11 +57,11 @@ final class TripDetailsViewController: UICollectionViewController {
         let layout = UICollectionViewCompositionalLayout.list(using: configuration)
         super.init(collectionViewLayout: layout)
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     // MARK: - Init
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -78,7 +79,7 @@ final class TripDetailsViewController: UICollectionViewController {
             }
 
             if let date = item.date {
-                cell.timeLabel.text = date.formatted(date: .omitted, time:  .shortened)
+                cell.timeLabel.text = date.formatted(date: .omitted, time: .shortened)
                 cell.setAlpha(date < .now ? 1/2 : 1)
             } else {
                 cell.timeLabel.text = nil
@@ -121,8 +122,7 @@ final class TripDetailsViewController: UICollectionViewController {
         if let tripDetailsViewModel {
             let stopTimes = tripDetailsViewModel.tripDetails.schedule.stopTimes
 
-            let isOmittingPreviousStops = currentStop != nil
-            if let previousTrip = tripDetailsViewModel.previousTrip, !isOmittingPreviousStops {
+            if let previousTrip = tripDetailsViewModel.previousTrip, !isHidingPreviousStops {
                 let title = String(
                     format: OBALoc(
                         "trip_details_controller.starts_as_fmt",
@@ -135,7 +135,7 @@ final class TripDetailsViewController: UICollectionViewController {
                 items.append(Item(state: .previousTrip, title: title, date: nil))
             }
 
-            if let currentStop, let firstIndex = stopTimes.firstIndex(where: { $0.stopID == currentStop }) {
+            if isHidingPreviousStops, let currentStop, let firstIndex = stopTimes.firstIndex(where: { $0.stopID == currentStop }) {
                 let stopsBefore = String(AttributedString(localized: "^[\(firstIndex) \("stop")](inflect: true) before").characters)
                 items.append(Item(state: .ellipsis, title: stopsBefore, date: nil))
                 items.append(contentsOf: listItems(tripDetailsViewModel, range: firstIndex...))
@@ -189,7 +189,8 @@ final class TripDetailsViewController: UICollectionViewController {
                 state: state,
                 stopID: stopTime.stopID,
                 title: viewModel.stops[stopTime.stopID]?.name ?? stopTime.stopID,
-                date: stopTime.departureDate(relativeTo: viewModel.tripDetails)
+                date: stopTime.departureDate(relativeTo: viewModel.tripDetails),
+                emphasize: stopTime.stopID == currentStop
             ))
         }
 
@@ -211,7 +212,7 @@ final class TripDetailsViewController: UICollectionViewController {
 
         switch item.state {
         case .ellipsis:
-            self.currentStop = nil
+            self.isHidingPreviousStops = false
             self.applyData()
 
         case .nextTrip:
