@@ -222,7 +222,7 @@ class TripViewController: UIViewController,
     }
 
     // MARK: TripDetails
-    private lazy var floatingPanelController = TripFloatingPanelController()
+    private lazy var floatingPanelController = TripFloatingPanelController(application: application)
 
     func tripDetailsViewController(_ tripDetailsViewController: TripDetailsViewController, didSelectStop stopID: StopID) {
         application.viewRouter.navigateTo(stopID: stopID, from: self)
@@ -238,7 +238,7 @@ class TripViewController: UIViewController,
     private lazy var floatingPanel: OBAFloatingPanelController = {
         let panel = OBAFloatingPanelController(application, delegate: self)
         panel.isRemovalInteractionEnabled = false
-        
+
         let appearance = SurfaceAppearance()
         appearance.backgroundColor = .clear
         appearance.cornerRadius = ThemeMetrics.cornerRadius
@@ -342,6 +342,7 @@ class TripViewController: UIViewController,
         await MainActor.run {
             self.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
             self.floatingPanelController.tripDetailsViewController.currentStop = arrivalDeparture.stopID
+            self.floatingPanelController.stopArrivalView.arrivalDeparture = newArrDep
 //            self.tripDetailsController.tripConvertible = TripConvertible(arrivalDeparture: newArrDep)
         }
     }
